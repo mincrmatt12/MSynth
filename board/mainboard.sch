@@ -28893,51 +28893,51 @@ OUT/IN are relative to matrix, IN sends signals</text>
 </net>
 <net name="LED0" class="0">
 <segment>
-<pinref part="IC1" gate="MCU" pin="PG2"/>
-<wire x1="203.2" y1="101.6" x2="218.44" y2="101.6" width="0.1524" layer="91"/>
-<label x="215.9" y="101.6" size="1.778" layer="95" align="bottom-right"/>
+<pinref part="IC1" gate="MCU" pin="PE9"/>
+<wire x1="172.72" y1="157.48" x2="172.72" y2="172.72" width="0.1524" layer="91"/>
+<label x="172.72" y="170.18" size="1.778" layer="95" rot="R90" align="bottom-right"/>
 </segment>
 </net>
 <net name="LED1" class="0">
 <segment>
-<pinref part="IC1" gate="MCU" pin="PG3"/>
-<wire x1="203.2" y1="99.06" x2="218.44" y2="99.06" width="0.1524" layer="91"/>
-<label x="215.9" y="99.06" size="1.778" layer="95" align="bottom-right"/>
+<pinref part="IC1" gate="MCU" pin="PE8"/>
+<wire x1="170.18" y1="157.48" x2="170.18" y2="172.72" width="0.1524" layer="91"/>
+<label x="170.18" y="170.18" size="1.778" layer="95" rot="R90" align="bottom-right"/>
 </segment>
 </net>
 <net name="LED2" class="0">
 <segment>
-<pinref part="IC1" gate="MCU" pin="PG4"/>
-<wire x1="203.2" y1="96.52" x2="218.44" y2="96.52" width="0.1524" layer="91"/>
-<label x="215.9" y="96.52" size="1.778" layer="95" align="bottom-right"/>
+<pinref part="IC1" gate="MCU" pin="PE7"/>
+<wire x1="167.64" y1="157.48" x2="167.64" y2="172.72" width="0.1524" layer="91"/>
+<label x="167.64" y="170.18" size="1.778" layer="95" rot="R90" align="bottom-right"/>
 </segment>
 </net>
 <net name="LED3" class="0">
 <segment>
-<pinref part="IC1" gate="MCU" pin="PG5"/>
-<wire x1="203.2" y1="93.98" x2="218.44" y2="93.98" width="0.1524" layer="91"/>
-<label x="215.9" y="93.98" size="1.778" layer="95" align="bottom-right"/>
+<pinref part="IC1" gate="MCU" pin="PG1"/>
+<wire x1="203.2" y1="104.14" x2="218.44" y2="104.14" width="0.1524" layer="91"/>
+<label x="215.9" y="104.14" size="1.778" layer="95" align="bottom-right"/>
 </segment>
 </net>
 <net name="LED4" class="0">
 <segment>
-<pinref part="IC1" gate="MCU" pin="PG6"/>
-<wire x1="203.2" y1="91.44" x2="218.44" y2="91.44" width="0.1524" layer="91"/>
-<label x="215.9" y="91.44" size="1.778" layer="95" align="bottom-right"/>
+<pinref part="IC1" gate="MCU" pin="PF15"/>
+<wire x1="203.2" y1="111.76" x2="218.44" y2="111.76" width="0.1524" layer="91"/>
+<label x="215.9" y="111.76" size="1.778" layer="95" align="bottom-right"/>
 </segment>
 </net>
 <net name="LED5" class="0">
 <segment>
-<pinref part="IC1" gate="MCU" pin="PG7"/>
-<wire x1="203.2" y1="88.9" x2="218.44" y2="88.9" width="0.1524" layer="91"/>
-<label x="215.9" y="88.9" size="1.778" layer="95" align="bottom-right"/>
+<pinref part="IC1" gate="MCU" pin="PF14"/>
+<wire x1="203.2" y1="114.3" x2="218.44" y2="114.3" width="0.1524" layer="91"/>
+<label x="215.9" y="114.3" size="1.778" layer="95" align="bottom-right"/>
 </segment>
 </net>
 <net name="LED6" class="0">
 <segment>
-<pinref part="IC1" gate="MCU" pin="PG8"/>
-<wire x1="203.2" y1="86.36" x2="218.44" y2="86.36" width="0.1524" layer="91"/>
-<label x="215.9" y="86.36" size="1.778" layer="95" align="bottom-right"/>
+<pinref part="IC1" gate="MCU" pin="PF13"/>
+<wire x1="203.2" y1="116.84" x2="218.44" y2="116.84" width="0.1524" layer="91"/>
+<label x="215.9" y="116.84" size="1.778" layer="95" align="bottom-right"/>
 </segment>
 </net>
 </nets>
