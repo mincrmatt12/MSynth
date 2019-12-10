@@ -601,7 +601,7 @@ LETTER landscape</description>
 </symbol>
 </symbols>
 <devicesets>
-<deviceset name="STM32F437I*T" prefix="IC">
+<deviceset name="STM32F429I*T" prefix="IC">
 <description>&lt;b&gt;ARM 32-bit Cortex™-M3 CPU&lt;/b&gt;&lt;p&gt;
 180 MHz maximum frequency&lt;br&gt;
 1024 to 2048 Kbytes of Flash memory&lt;br&gt;
@@ -610,7 +610,7 @@ LETTER landscape</description>
 1.8 to 3.6 V application supply&lt;br&gt;</description>
 <gates>
 <gate name="MCU" symbol="STM32_176PIN_TYP3" x="0" y="0"/>
-<gate name="PWR" symbol="PWR_VDD15_VSS11" x="96.52" y="0" addlevel="request"/>
+<gate name="PWR" symbol="PWR_VDD15_VSS11" x="101.6" y="0" addlevel="request"/>
 </gates>
 <devices>
 <device name="" package="LQFP176">
@@ -27574,7 +27574,7 @@ Source: http://www.diodes.com/datasheets/ds23001.pdf</description>
 </classes>
 <parts>
 <part name="FRAME1" library="frames" library_urn="urn:adsk.eagle:library:229" deviceset="LETTER_L" device=""/>
-<part name="IC1" library="micro-stm_v3" deviceset="STM32F437I*T" device="" technology="G"/>
+<part name="IC1" library="micro-stm_v3" deviceset="STM32F429I*T" device="" technology="G"/>
 <part name="FRAME2" library="frames" library_urn="urn:adsk.eagle:library:229" deviceset="LETTER_L" device=""/>
 <part name="FRAME3" library="frames" library_urn="urn:adsk.eagle:library:229" deviceset="LETTER_L" device=""/>
 <part name="IC2" library="msynth" deviceset="WM8524" device="CGEDT/R" package3d_urn="urn:adsk.eagle:package:15515031/1"/>
@@ -27798,7 +27798,7 @@ Source: http://www.diodes.com/datasheets/ds23001.pdf</description>
 <part name="D3" library="diode" library_urn="urn:adsk.eagle:library:210" deviceset="DIODE-" device="SOD123" package3d_urn="urn:adsk.eagle:package:43420/1" value="1N4148W"/>
 <part name="D4" library="diode" library_urn="urn:adsk.eagle:library:210" deviceset="DIODE-" device="SOD123" package3d_urn="urn:adsk.eagle:package:43420/1" value="1N4148W"/>
 <part name="D5" library="diode" library_urn="urn:adsk.eagle:library:210" deviceset="DIODE-" device="SOD123" package3d_urn="urn:adsk.eagle:package:43420/1"/>
-<part name="C47" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0603" package3d_urn="urn:adsk.eagle:package:23616/2" value="100nf">
+<part name="C47" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0402" package3d_urn="urn:adsk.eagle:package:23626/2" value="100nF">
 <spice>
 <pinmapping spiceprefix="C">
 <pinmap gate="G$1" pin="1" pinorder="1"/>
