@@ -160,7 +160,7 @@
 <layer number="255" name="routoute" color="7" fill="1" visible="no" active="yes"/>
 </layers>
 <board>
-<fusionsync huburn="a.cGVyc29uYWw6dWUyODBhMDA0" projecturn="a.cGVyc29uYWw6dWUyODBhMDA0IzIwMTkxMjA4MjQ1NTc0MTUx" f3durn="urn:adsk.wipprod:dm.lineage:PXOgUNDKRdG7kxtiHh5fVg" pcbguid="281ffd67-4dd3-4df6-8a99-de921a7e5963" lastpulledtime="" lastsyncedchangeguid="152e28c4-10a3-a73a-ea13-9de952eaae2c"/>
+<fusionsync huburn="a.cGVyc29uYWw6dWUyODBhMDA0" projecturn="a.cGVyc29uYWw6dWUyODBhMDA0IzIwMTkxMjA4MjQ1NTc0MTUx" f3durn="urn:adsk.wipprod:dm.lineage:PXOgUNDKRdG7kxtiHh5fVg" pcbguid="281ffd67-4dd3-4df6-8a99-de921a7e5963" lastpulledtime="" lastsyncedchangeguid="6407e3a9-07d2-07f7-2dcb-b2199287f747"/>
 <plain>
 <wire x1="0" y1="0" x2="195" y2="0" width="0" layer="20"/>
 <wire x1="195" y1="0" x2="195" y2="100" width="0" layer="20"/>
@@ -351,6 +351,21 @@
 <wire x1="135.128" y1="52.07" x2="133.858" y2="50.8" width="0.1524" layer="25" curve="-90"/>
 <text x="118.11" y="45.72" size="1.016" layer="25" font="vector">Designed in Canada by Matthew Mirvish
 Dec 8, 2019 -- it maketh the music</text>
+<text x="114.427" y="43.688" size="0.8128" layer="21" align="center">+</text>
+<text x="23.749" y="51.943" size="0.8128" layer="21" align="center">+</text>
+<text x="60.071" y="11.811" size="0.8128" layer="21" align="center">+</text>
+<text x="94.488" y="11.684" size="0.8128" layer="21" align="center">+</text>
+<text x="124.968" y="11.684" size="0.8128" layer="21" align="center">+</text>
+<text x="19.812" y="46.101" size="0.8128" layer="21" align="center">+</text>
+<text x="19.812" y="33.147" size="0.8128" layer="21" align="center">+</text>
+<text x="19.812" y="61.341" size="0.8128" layer="21" align="center">+</text>
+<text x="19.685" y="73.914" size="0.8128" layer="21" align="center">+</text>
+<text x="24.003" y="67.056" size="0.8128" layer="21" align="center">+</text>
+<circle x="70.612" y="75.311" radius="0.254" width="0" layer="21"/>
+<circle x="93.472" y="75.311" radius="0.254" width="0" layer="21"/>
+<circle x="21.336" y="85.217" radius="0.254" width="0" layer="21"/>
+<circle x="153.797" y="69.85" radius="0.179603125" width="0" layer="21"/>
+<circle x="35.56" y="82.423" radius="0.283978125" width="0" layer="21"/>
 </plain>
 <libraries>
 <library name="rcl" urn="urn:adsk.eagle:library:334">
@@ -2283,6 +2298,20 @@ Source: DCJ0202.pdf</description>
 <text x="-2.8" y="0.7" size="1.016" layer="25" font="vector" ratio="12" align="bottom-center">&gt;NAME</text>
 <text x="4.2" y="0.7" size="1.016" layer="27" font="vector" ratio="12" align="bottom-center">&gt;VALUE</text>
 </package>
+<package name="SOD123" urn="urn:adsk.eagle:footprint:15762159/1" library_version="17">
+<description>&lt;b&gt;Diode&lt;/b&gt;</description>
+<wire x1="-1.1" y1="0.7" x2="1.1" y2="0.7" width="0.254" layer="21"/>
+<wire x1="1.1" y1="0.7" x2="1.1" y2="-0.7" width="0.254" layer="21"/>
+<wire x1="1.1" y1="-0.7" x2="-1.1" y2="-0.7" width="0.254" layer="21"/>
+<wire x1="-1.1" y1="-0.7" x2="-1.1" y2="0.7" width="0.254" layer="21"/>
+<smd name="C" x="-1.9" y="0" dx="1.4" dy="1.4" layer="1"/>
+<smd name="A" x="1.9" y="0" dx="1.4" dy="1.4" layer="1"/>
+<text x="-1.1" y="1" size="1.27" layer="25">&gt;NAME</text>
+<text x="-1.1" y="-2.3" size="1.27" layer="27">&gt;VALUE</text>
+<rectangle x1="-1.95" y1="-0.45" x2="-1.2" y2="0.4" layer="21"/>
+<rectangle x1="1.2" y1="-0.45" x2="1.95" y2="0.4" layer="21"/>
+<rectangle x1="-1.05" y1="-0.65" x2="-0.15" y2="0.7" layer="21"/>
+</package>
 </packages>
 <packages3d>
 <package3d name="TE_292303-1" urn="urn:adsk.eagle:package:15625411/2" type="model" library_version="1" library_locally_modified="yes">
@@ -2373,6 +2402,12 @@ Source: DCJ0202.pdf</description>
 <description>Micro SD card holder with push-to-eject feature.</description>
 <packageinstances>
 <packageinstance name="DM3AT-SF-PEJM5"/>
+</packageinstances>
+</package3d>
+<package3d name="SOD123" urn="urn:adsk.eagle:package:15762160/1" type="box" library_version="17">
+<description>&lt;b&gt;Diode&lt;/b&gt;</description>
+<packageinstances>
+<packageinstance name="SOD123"/>
 </packageinstances>
 </package3d>
 </packages3d>
@@ -2940,41 +2975,6 @@ You are welcome to use this library for commercial purposes. For attribution, we
 </package3d>
 </packages3d>
 </library>
-<library name="diode" urn="urn:adsk.eagle:library:210">
-<description>&lt;b&gt;Diodes&lt;/b&gt;&lt;p&gt;
-Based on the following sources:
-&lt;ul&gt;
-&lt;li&gt;Motorola : www.onsemi.com
-&lt;li&gt;Fairchild : www.fairchildsemi.com
-&lt;li&gt;Philips : www.semiconductors.com
-&lt;li&gt;Vishay : www.vishay.de
-&lt;/ul&gt;
-&lt;author&gt;Created by librarian@cadsoft.de&lt;/author&gt;</description>
-<packages>
-<package name="SOD123" urn="urn:adsk.eagle:footprint:43203/1" library_version="8">
-<description>&lt;b&gt;Diode&lt;/b&gt;</description>
-<wire x1="-1.1" y1="0.7" x2="1.1" y2="0.7" width="0.254" layer="51"/>
-<wire x1="1.1" y1="0.7" x2="1.1" y2="-0.7" width="0.254" layer="51"/>
-<wire x1="1.1" y1="-0.7" x2="-1.1" y2="-0.7" width="0.254" layer="51"/>
-<wire x1="-1.1" y1="-0.7" x2="-1.1" y2="0.7" width="0.254" layer="51"/>
-<smd name="C" x="-1.9" y="0" dx="1.4" dy="1.4" layer="1"/>
-<smd name="A" x="1.9" y="0" dx="1.4" dy="1.4" layer="1"/>
-<text x="-1.1" y="1" size="1.27" layer="25">&gt;NAME</text>
-<text x="-1.1" y="-2.3" size="1.27" layer="27">&gt;VALUE</text>
-<rectangle x1="-1.95" y1="-0.45" x2="-1.2" y2="0.4" layer="51"/>
-<rectangle x1="1.2" y1="-0.45" x2="1.95" y2="0.4" layer="51"/>
-<rectangle x1="-1.05" y1="-0.65" x2="-0.15" y2="0.7" layer="51"/>
-</package>
-</packages>
-<packages3d>
-<package3d name="SOD123" urn="urn:adsk.eagle:package:43420/1" type="box" library_version="8">
-<description>Diode</description>
-<packageinstances>
-<packageinstance name="SOD123"/>
-</packageinstances>
-</package3d>
-</packages3d>
-</library>
 </libraries>
 <attributes>
 </attributes>
@@ -3232,7 +3232,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="23.704" y="54.34" size="1.27" layer="25"/>
 <attribute name="POPULARITY" value="2" x="-44.45" y="185.42" size="1.778" layer="27" rot="R180" display="off"/>
 <attribute name="SPICEPREFIX" value="C" x="-44.45" y="185.42" size="1.778" layer="27" rot="R180" display="off"/>
-<attribute name="VALUE" x="23.958" y="51.523" size="0.851" layer="27"/>
+<attribute name="VALUE" x="24.593" y="51.523" size="0.851" layer="27"/>
 </element>
 <element name="C2" library="rcl" library_urn="urn:adsk.eagle:library:334" package="C0402" package3d_urn="urn:adsk.eagle:package:23626/2" value="100nF" x="98.044" y="30.226" smashed="yes" rot="R270">
 <attribute name="NAME" x="95.885" y="30.353" size="0.762" layer="25" rot="R270"/>
@@ -3282,7 +3282,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="23.45" y="69.58" size="1.27" layer="25"/>
 <attribute name="POPULARITY" value="2" x="-50.8" y="200.66" size="1.778" layer="27" rot="R180" display="off"/>
 <attribute name="SPICEPREFIX" value="C" x="-50.8" y="200.66" size="1.778" layer="27" rot="R180" display="off"/>
-<attribute name="VALUE" x="23.704" y="66.763" size="0.851" layer="27"/>
+<attribute name="VALUE" x="25.609" y="66.763" size="0.851" layer="27"/>
 </element>
 <element name="C27" library="rcl" library_urn="urn:adsk.eagle:library:334" package="C0603" package3d_urn="urn:adsk.eagle:package:23616/2" value="0.47uF" x="13.97" y="63.5" smashed="yes" rot="R180">
 <attribute name="NAME" x="12.319" y="64.135" size="1.27" layer="25"/>
@@ -3894,30 +3894,25 @@ design rules under a new name.</description>
 <attribute name="NAME" x="1.875" y="54.255" size="1.27" layer="25" rot="R270" align="center"/>
 <attribute name="VALUE" x="11.654" y="54.636" size="0.851" layer="27" rot="R270" align="center"/>
 </element>
-<element name="D1" library="diode" library_urn="urn:adsk.eagle:library:210" package="SOD123" package3d_urn="urn:adsk.eagle:package:43420/1" value="1N4148W" x="73.66" y="21.59" smashed="yes" rot="R90">
+<element name="D1" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="SOD123" package3d_urn="urn:adsk.eagle:package:15762160/1" value="1N4148W" x="73.66" y="21.59" smashed="yes" rot="R90">
 <attribute name="NAME" x="74.252" y="25.924" size="1.27" layer="25" rot="R180"/>
-<attribute name="POPULARITY" value="22" x="73.66" y="21.59" size="1.778" layer="27" rot="R90" display="off"/>
 <attribute name="VALUE" x="72.658" y="18.966" size="0.851" layer="27" rot="R90"/>
 </element>
-<element name="D2" library="diode" library_urn="urn:adsk.eagle:library:210" package="SOD123" package3d_urn="urn:adsk.eagle:package:43420/1" value="1N4148W" x="76.2" y="21.59" smashed="yes" rot="R90">
+<element name="D2" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="SOD123" package3d_urn="urn:adsk.eagle:package:15762160/1" value="1N4148W" x="76.2" y="21.59" smashed="yes" rot="R90">
 <attribute name="NAME" x="77.046" y="25.924" size="1.27" layer="25" rot="R180"/>
-<attribute name="POPULARITY" value="22" x="76.2" y="21.59" size="1.778" layer="27" rot="R90" display="off"/>
 <attribute name="VALUE" x="75.198" y="18.966" size="0.851" layer="27" rot="R90"/>
 </element>
-<element name="D3" library="diode" library_urn="urn:adsk.eagle:library:210" package="SOD123" package3d_urn="urn:adsk.eagle:package:43420/1" value="1N4148W" x="78.74" y="21.59" smashed="yes" rot="R90">
+<element name="D3" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="SOD123" package3d_urn="urn:adsk.eagle:package:15762160/1" value="1N4148W" x="78.74" y="21.59" smashed="yes" rot="R90">
 <attribute name="NAME" x="79.84" y="25.924" size="1.27" layer="25" rot="R180"/>
-<attribute name="POPULARITY" value="22" x="78.74" y="21.59" size="1.778" layer="27" rot="R90" display="off"/>
 <attribute name="VALUE" x="77.738" y="18.966" size="0.851" layer="27" rot="R90"/>
 </element>
-<element name="D4" library="diode" library_urn="urn:adsk.eagle:library:210" package="SOD123" package3d_urn="urn:adsk.eagle:package:43420/1" value="1N4148W" x="81.28" y="21.59" smashed="yes" rot="R90">
+<element name="D4" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="SOD123" package3d_urn="urn:adsk.eagle:package:15762160/1" value="1N4148W" x="81.28" y="21.59" smashed="yes" rot="R90">
 <attribute name="NAME" x="82.634" y="25.924" size="1.27" layer="25" rot="R180"/>
-<attribute name="POPULARITY" value="22" x="81.28" y="21.59" size="1.778" layer="27" rot="R90" display="off"/>
 <attribute name="VALUE" x="80.278" y="18.966" size="0.851" layer="27" rot="R90"/>
 </element>
-<element name="D5" library="diode" library_urn="urn:adsk.eagle:library:210" package="SOD123" package3d_urn="urn:adsk.eagle:package:43420/1" value="" x="83.82" y="21.59" smashed="yes" rot="R90">
+<element name="D5" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="SOD123" package3d_urn="urn:adsk.eagle:package:15762160/1" value="1N4148W" x="83.82" y="21.59" smashed="yes" rot="R90">
 <attribute name="NAME" x="85.174" y="25.924" size="1.27" layer="25" rot="R180"/>
-<attribute name="POPULARITY" value="22" x="83.82" y="21.59" size="1.778" layer="27" rot="R90" display="off"/>
-<attribute name="VALUE" x="86.12" y="20.49" size="1.27" layer="27" rot="R90"/>
+<attribute name="VALUE" x="82.945" y="19.22" size="0.8128" layer="27" rot="R90"/>
 </element>
 <element name="C47" library="rcl" library_urn="urn:adsk.eagle:library:334" package="C0402" package3d_urn="urn:adsk.eagle:package:23626/2" value="100nF" x="138.43" y="80.264" smashed="yes" rot="R270">
 <attribute name="NAME" x="137.795" y="77.597" size="1.27" layer="25" rot="R90"/>
@@ -6409,8 +6404,7 @@ design rules under a new name.</description>
 <wire x1="35.318" y1="78.74" x2="37.975" y2="76.083" width="0.8128" layer="16"/>
 <wire x1="17.78" y1="75.438" x2="21.082" y2="78.74" width="0.8128" layer="16"/>
 <wire x1="21.082" y1="78.74" x2="35.318" y2="78.74" width="0.8128" layer="16"/>
-<wire x1="37.975" y1="76.083" x2="130.937" y2="76.2" width="0.2032" layer="16"/>
-<wire x1="130.937" y1="76.2" x2="133.985" y2="76.2" width="0.2032" layer="16"/>
+<wire x1="133.985" y1="76.2" x2="130.937" y2="76.2" width="0.2032" layer="16"/>
 <wire x1="133.985" y1="76.2" x2="136.652" y2="73.533" width="0.2032" layer="16"/>
 <wire x1="136.652" y1="73.533" x2="138.938" y2="73.533" width="0.2032" layer="16"/>
 <wire x1="138.938" y1="73.533" x2="141.488" y2="76.083" width="0.2032" layer="16"/>
@@ -6422,6 +6416,8 @@ design rules under a new name.</description>
 <wire x1="183.642" y1="75.946" x2="183.388" y2="75.946" width="0.2032" layer="1"/>
 <wire x1="37.975" y1="76.083" x2="39.4" y2="77.508" width="0.3048" layer="1"/>
 <wire x1="39.4" y1="77.508" x2="39.4" y2="80.33" width="0.3048" layer="1"/>
+<wire x1="130.937" y1="76.2" x2="38.092" y2="76.2" width="0.1524" layer="16"/>
+<wire x1="38.092" y1="76.2" x2="37.975" y2="76.083" width="0.1524" layer="16"/>
 </signal>
 <signal name="OUT">
 <contactref element="J3" pad="1"/>
