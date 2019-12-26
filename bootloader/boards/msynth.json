@@ -1,0 +1,37 @@
+{
+  "build": {
+    "cpu": "cortex-m4",
+    "extra_flags": "-DSTM32F429xx",
+    "f_cpu": "168000000L",
+    "mcu": "stm32f429igt6",
+    "variant": "MSYNTH_F429IG"
+  },
+  "debug": {
+    "default_tools": [
+      "stlink"
+    ],
+    "jlink_device": "STM32F429ZI",
+    "onboard_tools": [
+      "stlink"
+    ],
+    "openocd_board": "st_nucleo_f4",
+    "svd_path": "STM32F429x.svd"
+  },
+  "frameworks": [
+    "stm32cube"
+  ],
+  "name": "ST Nucleo F429ZI",
+  "upload": {
+    "maximum_ram_size": 262144,
+    "maximum_size": 16384,
+    "protocol": "stlink",
+    "protocols": [
+      "jlink",
+      "stlink",
+      "blackmagic"
+    ]
+  },
+  "url": "https://github.com/mincrmatt12/MSynth",
+  "vendor": "M2 Labs"
+}
+
