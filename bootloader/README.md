@@ -5,18 +5,13 @@ The MSynth bootloader is designed to allow booting of:
 	- one TEST application (the "factory test" )
 	- any number of SECONDARY applications
 
-These applications are contained in BUCKETS, which reside in contiguous flash sectors. Each bucket contains a header containing the set of applications it contains. The bootloader enumerates all sectors to find valid
-buckets and applications.  When booting normally, the first (and only legal) PRIMARY application found is launched. If F1 and F2 are held while booting, the first (and only legal) TEST application is launched. If the
+These applications are contained in SECTORS, which reside in contiguous flash sectors. Each sector contains a single application. The bootloader enumerates all sectors to find valid
+applications.  When booting normally, the first (and only legal) PRIMARY application found is launched. If F1 and F2 are held while booting, the first (and only legal) TEST application is launched. If the
 PRIMARY application cannot be found, but the TEST application can be, the TEST application is launched, otherwise the boot-menu appears. If all three mode buttons are held while booting, the boot-menu appears.
-
-## Bucket Header
-
-Each bucket starts with the magic sequence ``MSBC``. This is followed by first a `u32` which is the number of bytes in the entire bucket, headers and all, and secondly an unsigned byte indicating the number of
-application headers to follow.
 
 ## Application Header
 
-Each application has the following header:
+Each application has the following header, placed at the sector start:
 
 | Offset | Format | Description |
 | ---- | -------| --------- |
@@ -24,10 +19,11 @@ Each application has the following header:
 | 0x04 | char[32] | Null terminated name |
 | 0x24 | u32 | Vector table offset |
 | 0x28 | u32 | Entry point |
-| 0x2C | u32 | APPID |
+| 0x2C | char[4] | APPID |
 | 0x30 | u16 | Flags |
 | 0x34 | u32 | Debug data pointer (0 if not present) |
 | 0x38 | u32 | Initial stack pointer |
+| 0x3C | u32 | Length of application data |
 
 The flags are:
 

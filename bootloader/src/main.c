@@ -28,6 +28,16 @@ int main() {
 				boot_app(app_headers_found[i]);
 			}
 		}
+
+		puts("no primary app");
+		// We haven't booted an app, try the TEST app
+		//
+		for (int i = 0; i < appheader_count; ++i) {
+			if (app_headers_found[i]->flags & APPHEAD_FLAG_ISTEST) {
+				puts("booting test");
+				boot_app(app_headers_found[i]);
+			}
+		}
 	}
 
 	// if the bootloader tries to exit, panic
