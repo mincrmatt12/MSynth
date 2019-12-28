@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.3)
-project(bucket_name_here)
+project(bucket_name_here C CXX ASM)
 
 include(${CMAKE_CURRENT_LIST_DIR}/../framework/build.cmake)  # point at the right dir
 
@@ -11,6 +11,8 @@ add_app(
 	"FactoryTest"
 	# appID
 	"FTsc"
+	# appSIZE
+	16
 	# flags
 	TEST
 	LOWSCREEN
@@ -18,13 +20,12 @@ add_app(
 	# valid options are: PRIMARY TEST EEPROM FS LOWSCREEN APPCMD
 )
 
-# To mess with app building, change settings on app_${target_name}
-
-add_bucket(
-	# target name
-	factory
-	# how large of a bucket this is, valid options are 16, 32, 64, or multiple of 128
-	16
-	# apps
+# setup an upload target
+create_uploader(
+	# name of taregt (to use with make)
+	upload_factory
+	# name of app
 	factory_app
+	# sector
+	1
 )
