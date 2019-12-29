@@ -1,13 +1,21 @@
 # MAIN CMAKE FILE
 cmake_policy(SET CMP0057 NEW)
+cmake_policy(SET CMP0069 NEW)
 set(FRAMEWORK_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 # FLAGS SETUP
-set(COMMON_FLAGS " -fdata-sections -ffunction-sections -Os --specs=nosys.specs -nostdlib -mthumb -mcpu=cortex-m4")
+set(COMMON_FLAGS " -fdata-sections -ffunction-sections -Os --specs=nano.specs -nostdlib -mthumb -mcpu=cortex-m4 -g")
+# check if the user specified they wanted the FPU enabled
+if (${MSYNTH_USE_FPU})
+	set(COMMON_FLAGS "${COMMON_FLAGS} -mfloat-abi=hard -mfpu=fpv4-sp-d16")
+endif()
+
 add_definitions(-DSTM32F429xx -DF_CPU=168000000L -DUSE_FULL_LL_DRIVER)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -fno-exceptions -fno-rtti")
 set(CMAKE_EXE_LINKER_FLAGS) # disable nosys
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+set(CMAKE_CXX_STANDARD 17)
 
 # FIND OPENOCD
 set(OPENOCD_DIR $ENV{HOME}/.platformio/packages/tool-openocd)
@@ -38,10 +46,13 @@ add_library(cmsis_ll STATIC ${ll_srcs})
 add_library(mslib STATIC ${mslib_srcs})
 
 include_directories(
+	${FRAMEWORK_DIR}/lib/include
+)
+
+include_directories(SYSTEM
 	${PFRAMEWORK_DIR}/f4/Drivers/STM32F4xx_HAL_Driver/Inc
 	${PFRAMEWORK_DIR}/f4/Drivers/CMSIS/Device/ST/STM32F4xx/Include
 	${PFRAMEWORK_DIR}/f4/Drivers/CMSIS/Include
-	${FRAMEWORK_DIR}/lib/include
 )
 
 # PUBLIC API
@@ -174,4 +185,6 @@ function(create_uploader
 		COMMAND ${OPENOCD_DIR}/bin/openocd -f ${OPENOCD_DIR}/scripts/interface/stlink.cfg -f ${OPENOCD_DIR}/scripts/target/stm32f4x.cfg
 		-c "program ${CMAKE_CURRENT_BINARY_DIR}/app_${app_name}.${sector_no}.elf verify reset exit"
 	)
+
+	add_dependencies(${target_name} app_${app_name}_${sector_no})
 endfunction()
