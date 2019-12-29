@@ -1,7 +1,4 @@
 /* MSynth app linker file
- *
- * The app linker scripts are lazy, and are mainly present to dispatch
- *
  */
 
 /* The entry point is the Reset_Handler (CMSIS naming) */
@@ -22,7 +19,7 @@ SECTIONS {
 	.header : {
 		. = ALIGN(0x4);
 		KEEP(*(.app_header))
-		. = ALIGN(0x400);
+		. = ALIGN(0x200);
 		KEEP(*(.isr_vector)) /* ISR vector table */
 		. = ALIGN(0x4);
 	} >FLASH
