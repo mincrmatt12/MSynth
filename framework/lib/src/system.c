@@ -107,19 +107,19 @@ void SystemInit() {
 
 // semihosting
 
-int _close(int file) {return -1;}
-int _fstat(int file, struct stat *st) {
+int __attribute__((used)) _close(int file) {return -1;}
+int __attribute__((used)) _fstat(int file, struct stat *st) {
 	st->st_mode = S_IFCHR;
 	return 0;
 }
 
-int _isatty(int file) {return 1;}
+int __attribute__((used)) _isatty(int file) {return 1;}
 
-int _lseek(int file, int ptr, int dir) {return 0;}
+int __attribute__((used)) _lseek(int file, int ptr, int dir) {return 0;}
 
-int _open(const char *name, int flags, int mode) {return -1;}
+int __attribute__((used)) _open(const char *name, int flags, int mode) {return -1;}
 
-int _read(int file, char *ptr, int len) {
+int __attribute__((used)) _read(int file, char *ptr, int len) {
 	// Read len bytes from the debug UART3
 
 	while (len--) {
@@ -131,7 +131,7 @@ int _read(int file, char *ptr, int len) {
 	return 0;
 }
 
-int _write(int file, char *ptr, int len) {
+int __attribute__((used)) _write(int file, char *ptr, int len) {
 	while (len--) {
 		LL_USART_TransmitData8(USART3, *ptr++);
 		while (!LL_USART_IsActiveFlag_TC(USART3));
@@ -141,7 +141,7 @@ int _write(int file, char *ptr, int len) {
 	return 0;
 }
 
-caddr_t _sbrk(int incr)
+caddr_t __attribute__((used)) _sbrk(int incr) 
 {
 	extern char end asm("end");
 	static char *heap_end;

@@ -118,7 +118,7 @@ void lcd::init() {
 	LL_GPIO_Init(GPIOG, &gpio_init);
 
 	// Setup the LTDC
-	
+
 	// Setup VSYNC, HSYNC, VPB, HPB, etc.
 	LTDC->SSCR = (40 << LTDC_SSCR_HSW_Pos) | (9 << LTDC_SSCR_VSH_Pos); // 1 - v/hsync
 	LTDC->BPCR = ((41 + 2 - 1) << LTDC_BPCR_AHBP_Pos) | ((10 + 2 - 1) << LTDC_BPCR_AVBP_Pos); // sync + back porch - 1
@@ -129,7 +129,7 @@ void lcd::init() {
 	LTDC->GCR &= ~(LTDC_GCR_PCPOL | LTDC_GCR_HSPOL | LTDC_GCR_VSPOL | LTDC_GCR_DEPOL);
 
 	// Background color is black by default, don't change it
-	
+
 	// Setup layer 1
 	LTDC_Layer1->WHPCR = ((41 + 2) << LTDC_LxWHPCR_WHSTPOS_Pos) | ((41 + 2 + 480 - 1) << LTDC_LxWHPCR_WHSPPOS_Pos); // full line
 	LTDC_Layer1->WVPCR = ((10 + 2) << LTDC_LxWVPCR_WVSTPOS_Pos) | ((10 + 2 + 272 - 1) << LTDC_LxWVPCR_WVSPPOS_Pos); // full col
