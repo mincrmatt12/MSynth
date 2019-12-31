@@ -5,6 +5,7 @@
 #include <stm32f4xx_ll_usart.h>
 #include <stm32f4xx_ll_bus.h>
 #include <stm32f4xx_ll_adc.h>
+#include <util.h>
 
 void periph::setup_dbguart() {
 	LL_USART_SetBaudRate(USART3, 42000000, LL_USART_OVERSAMPLING_16, 115200);
@@ -52,9 +53,9 @@ void periph::setup_blpwm() {
 		LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2);
 		LL_TIM_InitTypeDef init;
 
-		init.Autoreload = 256;
+		init.Autoreload = 255;
 		init.CounterMode = LL_TIM_COUNTERMODE_UP;
-		init.Prescaler = 69;
+		init.Prescaler = 89;
 		init.ClockDivision = LL_TIM_CLOCKDIVISION_DIV4;
 
 		LL_TIM_Init(TIM2, &init);
@@ -220,13 +221,19 @@ uint16_t periph::ui::get(periph::ui::knob which) {
 				                                          (which == knob::FX1 ? LL_ADC_CHANNEL_1 : 
 														   LL_ADC_CHANNEL_2)));
 
-	// Convert
-	LL_ADC_REG_StartConversionSWStart(ADC1);
+	// Sample 3 times and average
+	uint16_t sum = 0;
+	for (int i = 0; i < 3; ++i) {
+		// Convert
+		LL_ADC_REG_StartConversionSWStart(ADC1);
 
-	// Wait for conversion
-	while (!LL_ADC_IsActiveFlag_EOCS(ADC1)) {;}
-	LL_ADC_ClearFlag_EOCS(ADC1);
+		// Wait for conversion
+		while (!LL_ADC_IsActiveFlag_EOCS(ADC1)) {;}
+		LL_ADC_ClearFlag_EOCS(ADC1);
 
-	// Read out value
-	return LL_ADC_REG_ReadConversionData12(ADC1);
+		// Read out value
+		sum += LL_ADC_REG_ReadConversionData12(ADC1);
+	}
+
+	return sum / 3;
 }
