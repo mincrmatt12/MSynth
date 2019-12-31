@@ -85,9 +85,6 @@ SECTIONS {
 		_edata = .;        /* define a global symbol at data end */
 	} >RAM AT> FLASH
 
-	_eapp = _sidata + SIZEOF(.data);
-	_appsize = _eapp - _sapp;
-
 	/* Uninitialized data section */
 	. = ALIGN(4);
 	.bss :
@@ -125,9 +122,12 @@ SECTIONS {
 		_eccm = .;
 		PROVIDE(end = .);
 		PROVIDE(_end = .);
-	} >CCMRAM
+	} >CCMRAM AT> FLASH
 	
 	_siccm = LOADADDR(.ccmdata);
+
+	_eapp = MAX(_siccm, _sidata) + SIZEOF(.data);
+	_appsize = _eapp - _sapp;
 
 	.bkpram : {
 		. = . + (4096 - 128);
