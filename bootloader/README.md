@@ -129,5 +129,91 @@ Normally, the value is 0, meaning a normal boot. When the filesystem is cleaned 
 
 ## Boot State
 
-When an app is launched, the MSP is first set to the location of 
+When an app is launched, the following conditions hold:
 
+- VTOR is set correctly for the app
+- LR points to a valid return address
+- MSP is set to a new stack
+
+## Filesystem
+
+The MSynthFS is designed for storing resources with applications. A resource is something that is any of the following:
+- may be shared between apps
+- not easy/practical to place in .rodata
+- may be updated separately from the main app text (patch data, for example)
+
+In effect, the MSynthFS is a collection of files; each bearing a unique filename and contents, as well as metadata.
+The FS is designed to fit it a single (or if absolutely necessary, two) 128kB sector(s). Because it sits as a single sector, erasing is only
+practical from the perspective of the bootloader / external device when a cleanup operation is required. As a result, many fields use
+`0xff` as a placeholder, so that they may be changed later.
+
+### Layout
+
+The FS is divided into 16 logical sections, which make up the top-level folders (the root is considered a folder under this scheme with null name).
+Each of these sections contains a linked list of files. Typically top-level folders correspond to installed applications (usually with name `$IDID`) 
+however usually the last 4 are reserved for the primary application. The root folder is one of these.
+
+### Format
+
+The FS starts with a header:
+
+| Offset | Format | Meaning |
+| ------ | -------- | ------------- |
+| 0x00 | `"MSFS"` | 4-byte magic |
+| 0x04 | u8 | structure version (currently 1)
+| 0x05 | u8 | number of sectors used |
+| 0x06 | u16 | top-level folder use mask (inactive 1, active 0) |
+| 0x08 | `TopLevel[16]` | set of top level folder (file chains) |
+
+A `TopLevel` entry looks like:
+
+| Offset | Format | Meaning |
+| ------ | -------- | ------------- |
+| 0x00 | `"fStL"` | 4-byte magic. Only present if in use |
+| 0x04 | char[12] | name, null terminated |
+| 0x10 | u32 | ptr to first file, 0xFFFF FFFF if no files contained |
+| 0x14 | u16 | flags |
+| 0x16 | u16 | reserved, should be kept 0xFFFF |
+
+The flags are:
+```
+00000000 0000 0000
+|///////   ||  |||
+|   	   ||  ||-- system-global (fonts, img)
+|          ||  |-- primary-app (patches)
+|          ||  -- private-app ($TcEM)
+-- users   || 
+		   |-- is marked for deletion
+		   -- is deleted
+```
+
+#### Files
+
+A file contains some flags, some set of apps requesting it stay around, a potential new version and the next file.
+Each file starts with this header:
+
+| Offset | Format | Meaning |
+| ------ | -------- | ------------- |
+| 0x00 | `"fLeT"` | 4-byte magic |
+| 0x04 | char[16] | null-terminated name |
+| 0x14 | u32 | user flags |
+| 0x18 | u16 | length |
+| 0x2C | u16 | flags |
+| 0x30 | u32 | ptr to next file (0xFFFF FFFF if end of list) |
+| 0x34 | u32 | ptr to new revision of this file |
+
+Immediately following this header (alignment is only required to 0x4) is the entire contents of the file.
+If the new revision ptr is set, all data current residing in this entry is discarded and the new entry used as if it were placed here.
+Finding new memory in the FS area is up to the app. Fragmentation is allowed.
+
+The flags are:
+
+```
+11 00000 10
+|| |//// ||
+|| |     |-- is deleted (usually accompanied by a revision ptr of 0)
+|| |     -- is marked for deletion (will be deleted at next available opportunity)
+|| -- creator (31 for system)
+|-- is font resource (used by the bootloader in lieu of extensions)
+-- is img resource
+```

@@ -128,3 +128,21 @@ int _write(int file, char *ptr, int len) {
 
 	return 0;
 }
+
+extern void (*__init_array_start[])(void);
+extern void (*__init_array_end[])(void);
+extern void (*__preinit_array_start[])(void);
+extern void (*__preinit_array_end[])(void);
+
+void __wrap___libc_init_array() {
+	// Call constructors
+	//
+	int cpp_size = &(__preinit_array_end[0]) - &(__preinit_array_start[0]);
+    for (int cpp_count = 0; cpp_count < cpp_size; ++cpp_count) {
+        __preinit_array_start[cpp_count]();
+    }
+	cpp_size = &(__init_array_end[0]) - &(__init_array_start[0]);
+    for (int cpp_count = 0; cpp_count < cpp_size; ++cpp_count) {
+        __init_array_start[cpp_count]();
+    }
+}
