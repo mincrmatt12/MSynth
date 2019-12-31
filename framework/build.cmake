@@ -4,17 +4,18 @@ cmake_policy(SET CMP0069 NEW)
 set(FRAMEWORK_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 # FLAGS SETUP
-set(COMMON_FLAGS " -fdata-sections -ffunction-sections -Os --specs=nano.specs -nostdlib -mthumb -mcpu=cortex-m4 -g")
+set(COMMON_FLAGS " -Os --specs=nano.specs -nostdlib -mthumb -mcpu=cortex-m4 -g")
 # check if the user specified they wanted the FPU enabled
 if (${MSYNTH_USE_FPU})
 	set(COMMON_FLAGS "${COMMON_FLAGS} -mfloat-abi=hard -mfpu=fpv4-sp-d16")
 endif()
 
 add_definitions(-DSTM32F429xx -DF_CPU=168000000L -DUSE_FULL_LL_DRIVER)
+#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+set(COMMON_FLAGS "${COMMON_FLAGS} -Wl,--gc-sections,--relax -ffunction-sections")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -fno-exceptions -fno-rtti")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -fno-exceptions -fno-rtti -Wno-register")
 set(CMAKE_EXE_LINKER_FLAGS) # disable nosys
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 set(CMAKE_CXX_STANDARD 17)
 
 # FIND OPENOCD
@@ -45,11 +46,9 @@ file(GLOB mslib_srcs ${FRAMEWORK_DIR}/lib/src/*.c ${FRAMEWORK_DIR}/lib/src/*.cpp
 add_library(cmsis_ll STATIC ${ll_srcs})
 add_library(mslib STATIC ${mslib_srcs})
 
-include_directories(
-	${FRAMEWORK_DIR}/lib/include
-)
+target_include_directories(mslib PRIVATE ${FRAMEWORK_DIR}/lib/include/msynth)
 
-include_directories(SYSTEM
+include_directories(
 	${PFRAMEWORK_DIR}/f4/Drivers/STM32F4xx_HAL_Driver/Inc
 	${PFRAMEWORK_DIR}/f4/Drivers/CMSIS/Device/ST/STM32F4xx/Include
 	${PFRAMEWORK_DIR}/f4/Drivers/CMSIS/Include
@@ -154,6 +153,7 @@ function(add_app
 
 	# Create object library of sources (to avoid recompiling)
 	add_library(app_${target_name} OBJECT ${app_srcs})
+	target_include_directories(app_${target_name} PRIVATE ${FRAMEWORK_DIR}/lib/include)
 
 	set(sector_number 1)
 	foreach(sector IN LISTS sectors)
