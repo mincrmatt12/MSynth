@@ -8,7 +8,7 @@ namespace draw {
 	// Fill the LCD with a color
 	void fill(uint8_t color);
 
-	// Draw a rectangle to the LCD (potentially using DMA2D)
+	// Draw a filled rectangle
 	void rect(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color);
 	
 	// Draw a line to the LCD
