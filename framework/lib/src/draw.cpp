@@ -1,6 +1,7 @@
 #include <draw.h>
 #include <lcd.h>
 #include <string.h>
+#include <stm32f4xx_ll_dma2d.h>
 
 namespace draw {
 	// FONT ROUTINES & TYPEDEFS
@@ -179,5 +180,18 @@ namespace draw {
 		}
 
 		return pen;
+	}
+
+	// DRAWING ROUTINES
+	void fill(uint8_t color) {
+		memset(framebuffer_data, color, sizeof(framebuffer_data));
+	}
+
+	void rect(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color) {
+		for (int y = y0; y < y1; ++y) {
+			for (int x = x0; x < x1; ++x) {
+				framebuffer_data[y][x] = color;
+			}
+		}
 	}
 };
