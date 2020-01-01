@@ -218,3 +218,39 @@ The flags are:
 |-- is font resource (used by the bootloader in lieu of extensions)
 -- is img resource
 ```
+
+#### User flags
+
+Various filesystem objects take a set of user-flags. These are used to tell the bootloader that an app wants to keep a file around during cleanup. During the cleanup operation, the following
+things happen:
+
+- Call all APPCMDs for updating use flags
+- Find the set of POTENTIAL GARBAGE files
+   - For each toplevel and its files:
+      - Is it a system-global toplevel:
+         - Is it a font or image created by someone other than system? Add to the RSRC-USE list
+      - Is it a primary toplevel:
+         - If this is a PURGE-level clean, add all files to the APP-USE list.
+      - Is it a private app:
+         - Is the file marked for deletion?
+            - Mark file as deleted
+         - Is the owner a valid owner (exists in an APPINFO)?
+            - ignore
+         - Otherwise, add to the APP-USE list.
+- For all the files in RSRC-USE list:
+   - Is the file the only remaining font on the system: ignore it
+   - Is the filename "splash": ignore it
+   - Do any of its users exist: ignore it
+   - Otherwise, mark as deleted.
+- For all the files in the APP-USE list:
+   - Is it marked as used by a valid app (only the primary for those in primary folders): ignore it.
+   - Is it a primary resource: prompt the use for confirmation
+   - Otherwise, mark as deleted
+- Regenerate the filesystem, removing old revisions of files and deleted ones.
+
+The bit to set in the user flags is marked in the APPINFO header. Values above 16 indicate unassigned, and values above 16 in the user flags themselves are reserved for bootloader use.
+
+The user can also request for file deletion, in which case the same logic should be executed as above, except all cases where the file would be ignored instead cause a confirmation, and instead of doing a full regeneration,
+just mark the files as deleted.
+
+Prompt operations can call into APPCMDs for custom messages if there is only one user registered (e.g. "This sample is in a recently-used patch. Deleting it would require the SD card to be inserted to reinstall it").
