@@ -1,0 +1,5 @@
+_*fs/
+*fs.bin
+
+*.gdb_history
+*/compile_commands.json
