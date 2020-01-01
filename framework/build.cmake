@@ -11,8 +11,8 @@ if (${MSYNTH_USE_FPU})
 endif()
 
 add_definitions(-DSTM32F429xx -DF_CPU=168000000L -DUSE_FULL_LL_DRIVER)
-#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-set(COMMON_FLAGS "${COMMON_FLAGS} -Wl,--gc-sections,--relax -ffunction-sections")
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+#set(COMMON_FLAGS "${COMMON_FLAGS} -Wl,--gc-sections,--relax -ffunction-sections")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -fno-exceptions -fno-rtti -Wno-register")
 set(CMAKE_EXE_LINKER_FLAGS) # disable nosys
