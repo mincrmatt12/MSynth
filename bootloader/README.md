@@ -1,9 +1,10 @@
 # bootloader
 
 The MSynth bootloader is designed to allow booting of:
-	- one PRIMARY application (the synthesizer itself)
-	- one TEST application (the "factory test" )
-	- any number of SECONDARY applications
+
+- one PRIMARY application (the synthesizer itself)
+- one TEST application (the "factory test" )
+- any number of SECONDARY applications
 
 These applications are contained in SECTORS, which reside in contiguous flash sectors. Each sector contains a single application. The bootloader enumerates all sectors to find valid
 applications.  When booting normally, the first (and only legal) PRIMARY application found is launched. If F1 and F2 are held while booting, the first (and only legal) TEST application is launched. If the
