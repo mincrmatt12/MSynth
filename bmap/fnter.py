@@ -224,7 +224,7 @@ for i in CHAR_NUMS:
 # finally, create the kerning blob
 kernblb = bytearray()
 for i in table:
-    kernblb.extend(struct.pack("<BBh", *i))
+    kernblb.extend(struct.pack("<BBb", *i))
 
 payloadblb = bytearray() + kernblb  # create a copy
 dataptr_base = len(payloadblb) + 0xC + 512 # length of dataptr table

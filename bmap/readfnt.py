@@ -147,7 +147,7 @@ with open(sys.argv[1], "rb") as f:
         print()
 
         for i in range(kernlen):
-            first, last, offs = struct.unpack_from("<BBh", datablb, kernptr + i*4)
+            first, last, offs = struct.unpack_from("<BBb", datablb, kernptr + i*3)
             print(f"{first:02x} ({chr(first)})  {last:02x} ({chr(last)})  {offs}")
 
         print()
