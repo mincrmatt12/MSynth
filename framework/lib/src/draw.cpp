@@ -7,7 +7,7 @@ namespace draw {
 	// FONT ROUTINES & TYPEDEFS
 	struct Kern {
 		char a, b;
-		int16_t offset;
+		int8_t offset;
 	};
 
 	struct Metrics {
