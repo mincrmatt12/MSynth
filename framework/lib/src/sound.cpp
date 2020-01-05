@@ -69,10 +69,9 @@ void sound::init() {
 		
 		LL_DMA_SetChannelSelection(DMA1, LL_DMA_STREAM_4, LL_DMA_CHANNEL_0);
 		LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_STREAM_4, LL_DMA_MEMORY_INCREMENT);
-	}
 
-	// Enable I2S
-	LL_I2S_Enable(SPI2);
+		LL_DMA_DisableFifoMode(DMA1, LL_DMA_STREAM_4);
+	}
 }
 
 void sound::set_mute(bool mute) {
@@ -88,6 +87,9 @@ void sound::single_shot(uint16_t *audio_data, uint32_t nsamples) {
 
 	// Start sending data
 	LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_4);
+
+	// Enable I2S
+	LL_I2S_Enable(SPI2);
 }
 
 bool sound::finished_sending() {
@@ -98,6 +100,9 @@ void sound::stop_output() {
 	LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_4);
 	LL_DMA_DisableIT_TC(DMA1, LL_DMA_STREAM_4);
 	LL_DMA_DisableIT_TE(DMA1, LL_DMA_STREAM_4);
+
+	// Disable I2S
+	LL_I2S_Disable(SPI2);
 }
 
 void sound::continuous_sample(uint16_t *audio_data, uint32_t nsamples) {
@@ -109,4 +114,7 @@ void sound::continuous_sample(uint16_t *audio_data, uint32_t nsamples) {
 
 	// Start sending data
 	LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_4);
+
+	// Enable I2S
+	LL_I2S_Enable(SPI2);
 }
