@@ -135,7 +135,7 @@ void periph::ui::poll() {
 		wait_stable;
 	}
 
-	buttons_pressed = (old ^ buttons_held) & buttons_held;
+	buttons_pressed = ((old ^ buttons_held) & buttons_held) & ~buttons_pressed;
 }
 
 void periph::setup_ui() {
