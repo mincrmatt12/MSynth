@@ -17,9 +17,9 @@ void AudioTest::start() {
 	draw::text(200, 100, "LineoutAudio", uiFnt, 0);
 
 	// Set the buffer going
-	for (int i = 0, j = 0; i < 65536; i += 1310, j += 2) {
+	for (int i = 0, j = 0; i < 65536; i += 1310, j += 2) { // create a semi-accurate 440 hz wave
 		sample_buffer[j] = i;
-		sample_buffer[j+1] = i;
+		sample_buffer[j+1] = (i << 1) & 0xFFFF;
 	}
 
 	// Set the audio out
