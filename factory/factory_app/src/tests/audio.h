@@ -13,5 +13,4 @@ struct AudioTest {
 
 private:
 	const void * uiFnt;
-	uint16_t sample_buffer[100];
 };

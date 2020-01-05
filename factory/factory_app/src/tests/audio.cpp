@@ -8,6 +8,8 @@
 #include <string.h>
 #include <stm32f4xx.h>
 
+uint16_t sample_buffer[102]; // Forced into RAM
+
 void AudioTest::start() {
 	uiFnt = fs::open("fonts/djv_16.fnt");
 
@@ -21,7 +23,7 @@ void AudioTest::start() {
 	}
 
 	// Set the audio out
-	sound::continuous_sample(sample_buffer, 100);
+	sound::continuous_sample(sample_buffer, 50);
 	// Enable speaker
 	sound::set_mute(false);
 }
