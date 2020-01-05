@@ -1,9 +1,15 @@
 # TOOLCHAIN SETUP
-set(TOOLCHAIN_DIR $ENV{HOME}/.platformio/packages/toolchain-gccarmnoneeabi)
+set(TOOLCHAIN_DIR /usr/local/arm-none-eabi)
 if (NOT EXISTS ${TOOLCHAIN_DIR})
-	message(FATAL_ERROR "Please build the bootloader first with platformio, as we steal it's dependencies")
+	message(WARNING "Trying to use PIO toolchain as backup; please install a new version of gccarmnoneeabi for better debug info into /usr/local")
+	set(TOOLCHAIN_DIR $ENV{HOME}/.platformio/packages/toolchain-gccarmnoneeabi)
+	if (NOT EXISTS ${TOOLCHAIN_DIR})
+		message(FATAL_ERROR "Please build the bootloader first with platformio, as we steal it's dependencies")
+	else()
+		message(STATUS "Found toolchain at ${TOOLCHAIN_DIR}")
+	endif()
 else()
-	message(STATUS "Found toolchain at ${TOOLCHAIN_DIR}")
+	set(TOOLCHAIN_DIR /usr/local)
 endif()
 
 set(CMAKE_SYSTEM_NAME Generic)
