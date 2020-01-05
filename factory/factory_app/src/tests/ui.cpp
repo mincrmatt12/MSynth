@@ -5,6 +5,7 @@
 #include <msynth/periphcfg.h>
 
 #include <string.h>
+#include <stm32f4xx.h>
 
 void UiTest::start() {
 	uiFnt = fs::open("fonts/djv_16.fnt");
@@ -16,6 +17,13 @@ void UiTest::start() {
 	last_button = 0;
 }
 
+int popcount(uint32_t x) {
+	int c = 0;
+    for (; x != 0; x &= x - 1)
+        c++;
+    return c;
+}
+
 TestState UiTest::loop() {
 	switch (state) {
 		case Button:
@@ -24,11 +32,12 @@ TestState UiTest::loop() {
 				periph::ui::poll();
 
 				if (periph::ui::buttons_pressed) {
-					if (last_button == (1ull << 23) - 1) {
+					// 0 is for the skipped over ones due to internal ordering
+					if (popcount(last_button) == 23) {
 						state = Led;
 
-						draw::fill(0b11'00'01'10); // solid blue
-						draw::text(200, 100, "LED (press to continue)", uiFnt, 255);
+						draw::fill(0b11'00'00'11); // solid blue
+						draw::text(100, 100, "LED (button to select, enter to continue)", uiFnt, 255);
 
 						last_led = periph::ui::led::F1;
 
@@ -69,7 +78,89 @@ TestState UiTest::loop() {
 				return InProgress;
 			}
 		case Led:
+			{
+				// Set current LED
+				periph::ui::set(periph::ui::led::ALL, false);
+				periph::ui::set(last_led, true);
+
+				// Get buttons
+				periph::ui::poll();
+
+				if (periph::ui::buttons_pressed) {
+					const char * name;
+
+					if (periph::ui::pressed(periph::ui::button::PATCH)) {
+						last_led = periph::ui::led::PATCH;
+						name = "PATCH";
+					}
+					else if (periph::ui::pressed(periph::ui::button::REC)) {
+						last_led = periph::ui::led::REC;
+						name = "REC";
+					}
+					else if (periph::ui::pressed(periph::ui::button::PLAY)) {
+						last_led = periph::ui::led::PLAY;
+						name = "PLAY";
+					}
+					else if (periph::ui::pressed(periph::ui::button::F1)) {
+						last_led = periph::ui::led::F1;
+						name = "F1";
+					}
+					else if (periph::ui::pressed(periph::ui::button::F2)) {
+						last_led = periph::ui::led::F2;
+						name = "F2";
+					}
+					else if (periph::ui::pressed(periph::ui::button::F3)) {
+						last_led = periph::ui::led::F3;
+						name = "F1";
+					}
+					else if (periph::ui::pressed(periph::ui::button::F4)) {
+						last_led = periph::ui::led::F4;
+						name = "F1";
+					}
+					else if (periph::ui::pressed(periph::ui::button::ENTER)) {
+						periph::ui::set(periph::ui::led::ALL, false);
+
+						// Set text
+						draw::fill(0b11'11'00'00); // solid blue
+						draw::text(200, 100, "Knob (UP to exit)", uiFnt, 255);
+						// exit
+						state = Knob;
+						return InProgress;
+					}
+
+					// Show screen
+					draw::rect(0, 101, 480, 128, 0);
+					draw::text(100, 116, name, uiFnt, 0xff);
+				}
+
+				return InProgress;
+			}
+			break;
 		case Knob:
+			{
+				// Sample all knobs
+				uint16_t fx1 = periph::ui::get(periph::ui::knob::FX1), 
+						 fx2 = periph::ui::get(periph::ui::knob::FX2), 
+						 vol = periph::ui::get(periph::ui::knob::VOLUME);
+				
+				// Construct string
+				char buf[48] = {0};
+				snprintf(buf, 48, "fx1: %d, fx2: %d, vol: %d", fx1, fx2, vol);
+
+				while ((LTDC->CPSR & 0xFFFF) < 240) {;}
+				draw::rect(0, 101, 480, 128, 0);
+				draw::text(90, 116, buf, uiFnt, 0xff);
+
+				periph::ui::poll();
+
+				// IF check
+				if (periph::ui::pressed(periph::ui::button::UP)) {
+					// done
+					return Ok;
+				}
+
+				return InProgress;
+			}
 			break;
 	}
 
