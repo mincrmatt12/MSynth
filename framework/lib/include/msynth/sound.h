@@ -19,6 +19,9 @@ namespace sound {
 	void init();
 
 	// Enable/disable speaker mute
+	//
+	// NOTE: this doesn't really work correctly due to issues with the PCB.
+	// It's possible some janky soldering jobs and external components will revive this feature, but right now it does not work
 	void set_mute(bool mute);
 
 	// Send out data in a single block.
