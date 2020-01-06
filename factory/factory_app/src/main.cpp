@@ -11,6 +11,7 @@
 #include "tests/base.h"
 #include "tests/ui.h"
 #include "tests/audio.h"
+#include "tests/lcd.h"
 
 int main() {
 	periph::setup_dbguart();
@@ -28,17 +29,20 @@ int main() {
 	enum {
 		Menu,
 		Ui,
-		Audio
+		Audio,
+		LCD
 	} state;
 
 	UiTest ui_test;
 	AudioTest audio_test;
+	LcdTest lcd_test;
 
 drawMenu:
 	draw::fill(0);
 	draw::text(16, 38, "Test menu:", insnFnt, 255);
 	draw::text(16, 38 + 32, " 1 - UI", insnFnt, 255);
 	draw::text(16, 38 + 64, " 2 - Audio", insnFnt, 255);
+	draw::text(16, 38 + 64 + 32, " 3 - LCD", insnFnt, 255);
 
 	while (1) {
 		TestState ts = InProgress;
@@ -56,6 +60,10 @@ drawMenu:
 							state = Audio;
 							audio_test.start();
 						}
+						else if (periph::ui::pressed(periph::ui::button::N3)) {
+							state = LCD;
+							lcd_test.start();
+						}
 					}
 				}
 				break;
@@ -64,6 +72,9 @@ drawMenu:
 				break;
 			case Audio:
 				ts = audio_test.loop();
+				break;
+			case LCD:
+				ts = lcd_test.loop();
 				break;
 		}
 
