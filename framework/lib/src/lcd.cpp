@@ -149,11 +149,11 @@ void lcd::init() {
 
 	// Setup the CLUT
 	for (uint32_t i = 0; i < 64; ++i) {
-		int r = (i & 3) << 6;
+		int b = (i & 3) << 6;
 		int g = (i & (3 << 2)) << 4;
-		int b = (i & (3 << 4)) << 2;
+		int r = (i & (3 << 4)) << 2;
 
-		LTDC_Layer1->CLUTWR = (i + 64*3) << 24 | (r << 16) | (r << 8) | b;
+		LTDC_Layer1->CLUTWR = (i + 64*3) << 24 | (r << 16) | (g << 8) | b;
 	}
 
 	// Clear out the other parts
