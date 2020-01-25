@@ -146,3 +146,5 @@ void __wrap___libc_init_array() {
         __init_array_start[cpp_count]();
     }
 }
+
+void __wrap_atexit() {}
