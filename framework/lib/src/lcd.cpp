@@ -130,7 +130,7 @@ void lcd::init() {
 	LTDC->SSCR = (40 << LTDC_SSCR_HSW_Pos) | (9 << LTDC_SSCR_VSH_Pos); // 1 - v/hsync
 	LTDC->BPCR = ((41 + 2 - 1) << LTDC_BPCR_AHBP_Pos) | ((10 + VFP - 1) << LTDC_BPCR_AVBP_Pos); // sync + back porch - 1
 	LTDC->AWCR = ((41 + 2 + 480 - 1) << LTDC_AWCR_AAW_Pos) | ((10 + VFP + 272 - 1) << LTDC_AWCR_AAH_Pos);
-	LTDC->TWCR = (524 << LTDC_TWCR_TOTALW_Pos) | (10 + VFP + 272 + 2 - 1 << LTDC_TWCR_TOTALH_Pos);
+	LTDC->TWCR = (524 << LTDC_TWCR_TOTALW_Pos) | ((10 + VFP + 272 + 2 - 1) << LTDC_TWCR_TOTALH_Pos);
 
 	// Setup clock polarity
 	LTDC->GCR &= ~(LTDC_GCR_PCPOL | LTDC_GCR_HSPOL | LTDC_GCR_VSPOL | LTDC_GCR_DEPOL);
