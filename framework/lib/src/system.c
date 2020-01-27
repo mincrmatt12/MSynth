@@ -4,6 +4,7 @@
 #include <stm32f4xx_ll_cortex.h>
 #include <stm32f4xx_ll_system.h>
 #include <stm32f4xx_ll_usart.h>
+#include <stm32f4xx_ll_utils.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -106,6 +107,8 @@ void SystemInit() {
     for (int cpp_count = 0; cpp_count < cpp_size; ++cpp_count) {
         __init_array_start[cpp_count]();
     }
+
+	LL_Init1msTick(168000000U);
 }
 
 // semihosting

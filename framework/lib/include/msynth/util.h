@@ -20,4 +20,6 @@ namespace util {
 	private:
 		int s = 0;
 	};
+
+	void delay(uint32_t ms);
 }
