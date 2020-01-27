@@ -11,7 +11,10 @@ if (${MSYNTH_USE_FPU})
 endif()
 
 add_definitions(-DSTM32F429xx -DF_CPU=168000000L -DUSE_FULL_LL_DRIVER)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
+if (NOT ${MSYNTH_DISABLE_LTO})
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
 #set(COMMON_FLAGS "${COMMON_FLAGS} -Wl,--gc-sections,--relax -ffunction-sections")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -fno-exceptions -fno-rtti -Wno-register")
