@@ -68,6 +68,9 @@ namespace sd {
 		// Callback info
 		void (*active_callback)(void *, access_status);
 		void * argument;
+
+		// Card info 
+		uint16_t RCA;
 	};
 
 	// Perform card initialization
