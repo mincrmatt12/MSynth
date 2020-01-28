@@ -100,7 +100,7 @@ struct send_op_cond_argument {
 		u32_bit<24, 1> switch_v18_req;
 
 		u32_bit<28, 1> xpc;
-		u32_bit<39, 1> eSD;
+		u32_bit<29, 1> eSD;
 		u32_bit<30, 1> hcs;
 	};
 };
