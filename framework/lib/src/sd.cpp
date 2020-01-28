@@ -17,74 +17,105 @@ enum struct command_status {
 	WrongResponse
 };
 
+// Helper class for bit definitions inside a struct
+// You should use this class by placing it in a union with a member of size Total bits
+template<std::size_t Total, std::size_t Index, std::size_t LocalSize>
+struct reg_bit {
+	using access_type = std::conditional_t<LocalSize == 1, bool, uint32_t>;
+	static_assert(Total % 8 == 0, "Total size must align to byte");
+
+	inline operator access_type() const {
+		return ((reinterpret_cast<const uint32_t *>(data)[Index / 8]) << (Index % 8)) & ((1U << LocalSize) - 1);
+	}
+
+	inline reg_bit& operator=(const access_type& other) {
+		(reinterpret_cast<uint32_t *>(data)[Index / 8]) &= ~(((1U << LocalSize) - 1) >> (Index % 8));
+		(reinterpret_cast<uint32_t *>(data)[Index / 8]) |= (other >> (Index % 8));
+		return *this;
+	}
+	
+private:
+	uint8_t data[Total / 8];
+};
+
+template<std::size_t Index, std::size_t LocalSize>
+using u32_bit = reg_bit<32, Index, LocalSize>;
+
+template<std::size_t Index, std::size_t LocalSize>
+using u128_bit = reg_bit<128, Index, LocalSize>;
+
 struct no_response {};
 struct card_interface_condition_r7 {
-	uint32_t check_pattern : 8;
-	uint32_t voltage_accepted : 4;
+	union {
+		uint32_t raw_data = 0;
 
-	// 20 stuff bits
+		u32_bit<0, 8> check_pattern;
+		u32_bit<8, 4> voltage_accepted;
+	};
 };
 
 struct published_rca_r6 {
-	uint32_t card_status_bits : 16;
-	uint32_t new_rca : 16;
+	uint16_t card_status_bits;
+	uint16_t new_rca;
 };
 
 struct status_r1 {
-	private: uint32_t reserved1 : 5;
-	public:
-	uint32_t app_cmd : 1;
-	uint32_t fx_event : 1;
-	private: uint32_t reserved2 : 1;
-	public:
-	uint32_t ready_for_data : 1;
-	uint32_t current_state : 4;
-	uint32_t erase_reset : 1;
-	uint32_t card_ecc_disabled : 1;
-	uint32_t wp_erase_skip : 1;
+	union {
+		uint32_t raw_data = 0;
 
-	// ERRORS
-	uint32_t csd_override : 1;
-	private: uint32_t reserved3 : 2;
-	public:
-	
-	uint32_t general_error : 1;
-	uint32_t cc_error : 1;
-	uint32_t card_ecc_failed : 1;
-	uint32_t illegal_command : 1;
-	uint32_t com_crc_error : 1;
-	uint32_t lock_unlock_failed : 1;
-	uint32_t card_is_locked : 1;
-	uint32_t wp_violation : 1;
-	uint32_t erase_param_error : 1;
-	uint32_t erase_seq_error : 1;
-	uint32_t block_len_error : 1;
-	uint32_t address_error : 1;
-	uint32_t out_of_range : 1;
+		u32_bit<5, 1> app_cmd;
+		u32_bit<6, 1> fx_event;
+		u32_bit<8, 1> ready_for_data;
+		u32_bit<9, 4> current_state;
+		u32_bit<13, 1> erase_reset;
+		u32_bit<14, 1> card_ecc_disabled;
+		u32_bit<15, 1> wp_erase_skip;
+
+		// ERRORS
+		u32_bit<16, 1> csd_override;
+		u32_bit<19, 1> general_error;
+		u32_bit<20, 1> cc_error;
+		u32_bit<21, 1> card_ecc_failed;
+		u32_bit<22, 1> illegal_command;
+		u32_bit<23, 1> com_crc_error;
+		u32_bit<24, 1> lock_unlock_failed;
+		u32_bit<25, 1> card_is_locked;
+		u32_bit<26, 1> wp_violation;
+		u32_bit<27, 1> erase_param_error;
+		u32_bit<28, 1> erase_seq_error;
+		u32_bit<29, 1> block_len_error;
+		u32_bit<30, 1> address_error;
+		u32_bit<31, 1> out_of_range;
+	};
 };
 
 struct send_op_cond_argument {
-	uint32_t vdd_voltage : 24;
-	uint32_t switch_v18_req : 1;
-	private: uint32_t reserved : 3;
-	public:
-	uint32_t xpc : 1;
-	uint32_t eSD : 1;
-	uint32_t hcs : 1;
+	union {
+		uint32_t raw_data = 0;
+
+		u32_bit<0, 24> vdd_voltage;
+		u32_bit<24, 1> switch_v18_req;
+
+		u32_bit<28, 1> xpc;
+		u32_bit<39, 1> eSD;
+		u32_bit<30, 1> hcs;
+	};
 };
 
 struct ocr_register {
-	uint32_t vdd_voltage : 24;
-	uint32_t switch_v18_acc : 1;
-	private: uint32_t reserved2 : 4;
-	public:
-	uint32_t uhsII_card_status : 1;
-	uint32_t card_capacity_status : 1;
-	uint32_t busy : 1;
+	union {
+		uint32_t raw_data;
+		
+		u32_bit<0, 24> vdd_voltage;
+		u32_bit<24, 1> switch_v18_acc;
+		u32_bit<29, 1> uhsII_card_status;
+		u32_bit<30, 1> card_capacity_status;
+		u32_bit<31, 1> busy;
+	};
 };
 
 struct csd_register {
-
+	
 };
 
 template<typename Argument, typename Response>
@@ -92,7 +123,7 @@ inline command_status send_command(Argument argument, uint32_t index, Response& 
 	if constexpr (!std::is_empty_v<Argument>) {
 		static_assert(sizeof(Argument) == 4, "argument must be a 32-bit value");
 
-		SDIO->ARG = reinterpret_cast<uint32_t>(argument);
+		SDIO->ARG = *reinterpret_cast<uint32_t *>(&argument);
 	}
 
 	static_assert(sizeof(Response) == 4 || sizeof(Response) == 16 || std::is_empty_v<Response>, "response must be either 32bits or 128bits or empty.");
@@ -152,14 +183,14 @@ inline command_status send_command(Argument argument, uint32_t index, Response& 
 		return command_status::WrongResponse;
 	}
 
-	if (sizeof(Response) == 4) {
-		response = reinterpret_cast<Response>(SDIO->RESP1);
+	if constexpr (sizeof(Response) == 4) {
+		response = *const_cast<const Response *>(reinterpret_cast<const volatile Response *>(&SDIO->RESP1));
 	}
 	else {
-		((uint32_t *)(&response))[0] = SDIO->RESP1;
-		((uint32_t *)(&response))[1] = SDIO->RESP2;
-		((uint32_t *)(&response))[2] = SDIO->RESP3;
-		((uint32_t *)(&response))[3] = SDIO->RESP4;
+		((uint32_t *)(&response))[3] = SDIO->RESP1; // 127:96
+		((uint32_t *)(&response))[2] = SDIO->RESP2;
+		((uint32_t *)(&response))[1] = SDIO->RESP3;
+		((uint32_t *)(&response))[0] = SDIO->RESP4;
 	}
 
 	return command_status::Ok;
@@ -278,7 +309,10 @@ sd::init_status sd::init_card() {
 	//  3. Try to send CMD8
 	{
 		card_interface_condition_r7 response;
-		auto result = send_command(card_interface_condition_r7{0x3F, 1}, 0x8, response);
+		card_interface_condition_r7 argument;
+		argument.check_pattern = 0x3F;
+		argument.voltage_accepted = 1;
+		auto result = send_command(argument, 0x8, response);
 
 		if (result == command_status::Ok) {
 			// Version 2 or greater card
@@ -351,7 +385,7 @@ sd::init_status sd::init_card() {
 	// Tell the card to send us it's CID (we don't care about it, but we still need to tell it
 	// to send it so it goes to the right state)
 	
-	uint32_t CID[16];
+	uint32_t CID[4];
 	
 	if (send_command(0xD00FBA4F /* stuff bits */, 2 /* ALL_SEND_CID */, CID) != command_status::Ok) {
 		// Failed
@@ -381,4 +415,5 @@ sd::init_status sd::init_card() {
 	}
 
 	// Now grab the CSD
+	return init_status::Ok;
 }
