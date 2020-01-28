@@ -19,18 +19,21 @@ enum struct command_status {
 
 // Helper class for bit definitions inside a struct
 // You should use this class by placing it in a union with a member of size Total bits
-template<std::size_t Total, std::size_t Index, std::size_t LocalSize>
+template<std::size_t Total, std::size_t Index, std::size_t LocalSize, typename AccessType=std::conditional_t<LocalSize == 1, bool, uint32_t>>
 struct reg_bit {
-	using access_type = std::conditional_t<LocalSize == 1, bool, uint32_t>;
+	typedef AccessType access_type;
 	static_assert(Total % 8 == 0, "Total size must align to byte");
+	static_assert(LocalSize < sizeof(AccessType) * 8, "Local size must fit inside the access type");
+	static_assert(LocalSize < 32, "Local size must be less than 32 bits");
+	static_assert(Index < Total, "Index must be inside struct");
 
 	inline operator access_type() const {
-		return ((reinterpret_cast<const uint32_t *>(data)[Index / 8]) << (Index % 8)) & ((1U << LocalSize) - 1);
+		return (*(reinterpret_cast<const uint32_t *>(data + (Index / 8))) << (Index % 8)) & ((1U << LocalSize) - 1);
 	}
 
 	inline reg_bit& operator=(const access_type& other) {
-		(reinterpret_cast<uint32_t *>(data)[Index / 8]) &= ~(((1U << LocalSize) - 1) >> (Index % 8));
-		(reinterpret_cast<uint32_t *>(data)[Index / 8]) |= (other >> (Index % 8));
+		*(reinterpret_cast<uint32_t *>(data + (Index / 8))) &= ~(((1U << LocalSize) - 1) << (Index % 8));
+		*(reinterpret_cast<uint32_t *>(data + (Index / 8))) |= (other << (Index % 8));
 		return *this;
 	}
 	
