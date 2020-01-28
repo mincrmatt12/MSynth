@@ -23,7 +23,9 @@ namespace sd {
 		CardNotInserted, // The card insert switch was not set
 		NotInitialized, // The card has not been inited
 		InternalPeripheralError, // The SD peripheral failed to do something, was init() called first?
-		CardUnusable // The card is unusable due to it sending invalid or unrecognizable data
+		CardUnusable, // The card is unusable due to it sending invalid or unrecognizable data
+		CardIsSuperGluedShut, // The card is perm-write protected
+		CardIsElmersGluedShut, // The card is temp-write protected, please fix it manually elsewhere
 	};
 
 	// Card access status
@@ -145,6 +147,5 @@ namespace sd {
 	access_status erase();
 
 	// CARD EXTERN
-	
 	extern Card card;
 }
