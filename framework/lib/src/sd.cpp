@@ -118,11 +118,63 @@ struct ocr_register {
 };
 
 struct csd_register {
-	
+	enum CsdStructureVersion {
+		CsdVersion1SC = 0,
+		CsdVersion2HCXC = 1
+	};
+
+	union {
+		uint32_t data[4];
+
+		reg_bit<128, 126, 2, CsdStructureVersion> csd_structure_ver;
+
+		// Common parameters
+
+		u128_bit<112, 8> taac;
+		u128_bit<104, 8> nsac;
+		u128_bit<96, 8> transfer_speed;
+		u128_bit<84, 12> card_command_classes;
+		u128_bit<80, 4> read_bl_len;
+		u128_bit<79, 1> read_bl_partial;
+		u128_bit<78, 1> write_blk_misalign;
+		u128_bit<77, 1> read_blk_misalign;
+		u128_bit<76, 1> dsr_implemented;
+
+		u128_bit<46, 3> erase_blk_en;
+		u128_bit<39, 7> erase_sector_size;
+
+		u128_bit<32, 7> wp_grp_size;
+		u128_bit<31, 1> wp_grp_enable;
+
+		u128_bit<26, 3> write_speed_factor;
+		u128_bit<22, 4> write_bl_len;
+		u128_bit<21, 1> write_bl_partial;
+
+		u128_bit<15, 1> file_format_grp;
+		u128_bit<14, 1> copy;
+		u128_bit<13, 1> perm_write_protect;
+		u128_bit<12, 1> tmp_write_protect;
+		u128_bit<10, 2> file_format;
+
+		u128_bit<1, 7> crc7;
+
+		union {
+			u128_bit<62, 12> card_size;
+			u128_bit<59, 3> vdd_r_curr_min;
+			u128_bit<56, 3> vdd_r_curr_max;
+			u128_bit<53, 3> vdd_w_curr_min;
+			u128_bit<50, 3> vdd_w_curr_max;
+			u128_bit<47, 3> card_size_mult;
+		} v1;
+
+		union {
+			u128_bit<48, 22> card_size;
+		} v2;
+	};
 };
 
 template<typename Argument, typename Response>
-inline command_status send_command(Argument argument, uint32_t index, Response& response, uint32_t timeout=1) {
+command_status send_command(Argument argument, uint32_t index, Response& response, uint32_t timeout=1) {
 	if constexpr (!std::is_empty_v<Argument>) {
 		static_assert(sizeof(Argument) == 4, "argument must be a 32-bit value");
 
@@ -187,7 +239,7 @@ inline command_status send_command(Argument argument, uint32_t index, Response& 
 	}
 
 	if constexpr (sizeof(Response) == 4) {
-		response = *const_cast<const Response *>(reinterpret_cast<const volatile Response *>(&SDIO->RESP1));
+		response = const_cast<const Response &>(*reinterpret_cast<const volatile Response *>(&SDIO->RESP1));
 	}
 	else {
 		((uint32_t *)(&response))[3] = SDIO->RESP1; // 127:96
@@ -205,7 +257,7 @@ inline command_status send_command(Argument argument, uint32_t index, uint32_t t
 	return send_command(argument, index, x, timeout);
 }
 
-command_status send_command(uint32_t index) {
+inline command_status send_command(uint32_t index) {
 	return send_command(no_response{}, index, 1);
 }
 
@@ -408,15 +460,34 @@ sd::init_status sd::init_card() {
 	}
 
 	// Begin STAGE 2: grabbing the CSD
-	// First, select the card
 	
 	{
-		status_r1 response;
-		if (send_command((uint32_t)card.RCA << 16 /* due to format this works */, 7, response) != command_status::Ok) {
+		csd_register result;
+		
+		if (send_command((uint32_t)card.RCA << 16, 9 /* SEND_CSD */, result) != command_status::Ok) {
+			// Card was unitialized
 			return init_status::CardNotResponding;
+		}
+
+		// Alright, now let's do the following:
+		//  - Check "glued" status
+		if (result.perm_write_protect) return init_status::CardIsSuperGluedShut;
+		if (result.tmp_write_protect) return init_status::CardIsElmersGluedShut;
+		// 	- Set the card length
+		// 	- (TODO): Set the card speed (used to determine what sample rates are reasonable)
+		// 	- (TODO): other stuff with the CSD?
+		
+		
+		if (result.csd_structure_ver == csd_register::CsdVersion1SC) {
+			// Check card size from C_SIZE and C_SIZE_MULT and READ_BL_LEN
+			card.length = ((result.v1.card_size + 1) * (1 << (result.v1.card_size_mult + 2))) * (1 << result.read_bl_len);
+		}
+		else {
+			// Check card size using a much more sane method
+			card.length = ((result.v2.card_size + 1) * 512 * 1024);
 		}
 	}
 
-	// Now grab the CSD
+	card.status = init_status::Ok;
 	return init_status::Ok;
 }
