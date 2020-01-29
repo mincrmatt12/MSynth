@@ -12,7 +12,7 @@ add_app(
 	# appID
 	"FTsc"
 	# appSIZE (kib)
-	16
+	32
 	# flags
 	TEST
 	LOWSCREEN
