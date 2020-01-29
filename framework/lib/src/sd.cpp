@@ -28,12 +28,12 @@ struct reg_bit {
 	static_assert(Index < Total, "Index must be inside struct");
 
 	inline operator access_type() const {
-		return (*(reinterpret_cast<const uint32_t *>(data + (Index / 8))) << (Index % 8)) & ((1U << LocalSize) - 1);
+		return static_cast<access_type>((*(reinterpret_cast<const uint32_t *>(data + (Index / 8))) << (Index % 8)) & ((1U << LocalSize) - 1));
 	}
 
 	inline reg_bit& operator=(const access_type& other) {
 		*(reinterpret_cast<uint32_t *>(data + (Index / 8))) &= ~(((1U << LocalSize) - 1) << (Index % 8));
-		*(reinterpret_cast<uint32_t *>(data + (Index / 8))) |= (other << (Index % 8));
+		*(reinterpret_cast<uint32_t *>(data + (Index / 8))) |= (static_cast<uint32_t>(other) << (Index % 8));
 		return *this;
 	}
 	
