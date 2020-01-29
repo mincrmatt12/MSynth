@@ -14,6 +14,9 @@ extern void (*__init_array_end[])(void);
 extern void (*__preinit_array_start[])(void);
 extern void (*__preinit_array_end[])(void);
 
+const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+const uint8_t APBPrescTable[8] = { 0, 0, 0, 0, 1, 2, 3, 4 };
+
 void SystemInit() {
 	SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access */
 	RCC->CR |= (uint32_t)0x00000001;
@@ -100,15 +103,19 @@ void SystemInit() {
 
 	// Call init functions
 	int cpp_size = &(__preinit_array_end[0]) - &(__preinit_array_start[0]);
-    for (int cpp_count = 0; cpp_count < cpp_size; ++cpp_count) {
-        __preinit_array_start[cpp_count]();
-    }
+	for (int cpp_count = 0; cpp_count < cpp_size; ++cpp_count) {
+		__preinit_array_start[cpp_count]();
+	}
 	cpp_size = &(__init_array_end[0]) - &(__init_array_start[0]);
-    for (int cpp_count = 0; cpp_count < cpp_size; ++cpp_count) {
-        __init_array_start[cpp_count]();
-    }
+	for (int cpp_count = 0; cpp_count < cpp_size; ++cpp_count) {
+		__init_array_start[cpp_count]();
+	}
 
-	LL_Init1msTick(168000000U);
+	/* Configure the SysTick to have interrupt in 1ms time base */
+	SysTick->LOAD  = (uint32_t)((168000000L / 1000) - 1UL);  /* set reload register */
+	SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
+	SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
+		SysTick_CTRL_ENABLE_Msk;                   /* Enable the Systick Timer */
 }
 
 // semihosting
