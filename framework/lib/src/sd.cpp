@@ -516,8 +516,30 @@ sd::init_status sd::init_card() {
 			card.length = (uint64_t(result.v2.card_size + 1) * 512 * 1024);
 		}
 	}
+	
+	// STAGE 3: select the card and move to faster bus speed
+	
+	{
+		status_r1 status;
+		if (send_command((uint32_t)card.RCA << 16, 7 /* SELECT_DESELECT_CARD */, status) != command_status::Ok) {
+			return init_status::CardNotResponding;
+		}
 
-	// Stage 3: read SCR + set bus width + trns speed
+		util::delay(1);
+
+		// Change bus speed settings
+		
+		SDIO->CLKCR = 0 /* clockdiv 0 = ~24mhz */ |
+			SDIO_CLKCR_WIDBUS; // 4-bit bus
+		
+		// Wait a bit for the clock to take hold
+		
+		util::delay(5);
+
+		// Set bus width
+		if (send_command<uint32_t>(card.RCA << 16, 55 /* APP_CMD */) != command_status::Ok) return init_status::InternalPeripheralError;
+		if (send_command<uint32_t>(2 /* 0b10 4 bit */, 6 /* ACMD6 */, status) != command_status::Ok) return init_status::NotSupported;
+	}
 
 	card.status = init_status::Ok;
 	return init_status::Ok;
