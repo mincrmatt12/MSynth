@@ -410,7 +410,7 @@ sd::init_status sd::init_card() {
 				arg.hcs = 1; // We support high capcity cards
 				arg.vdd_voltage = (1 << 20); // 3.2 - 3.3V
 				if (++count == 0xFFF) return init_status::CardNotResponding;
-				if (send_command(0 /* broadcast 0 rca */, 55 /* APP_CMD */) != command_status::Ok) return init_status::InternalPeripheralError;
+				if (send_command<uint32_t>(0 /* broadcast 0 rca */, 55 /* APP_CMD */) != command_status::Ok) return init_status::InternalPeripheralError;
 				if (auto result = send_command(arg, 41, /* AppOperCond */ response); result != command_status::Ok && result != command_status::CRCError) { // CRCs are allowed to fail here
 					return init_status::CardUnusable;
 				}
@@ -439,7 +439,7 @@ sd::init_status sd::init_card() {
 				arg.hcs = 0;
 				arg.vdd_voltage = (1 << 20); // 3.2 - 3.3V
 				if (++count == 0xFFF) return init_status::CardNotResponding;
-				if (send_command(0, 55 /* APP_CMD */) != command_status::Ok) return init_status::InternalPeripheralError;
+				if (send_command<uint32_t>(0, 55 /* APP_CMD */) != command_status::Ok) return init_status::InternalPeripheralError;
 				if (auto result = send_command(arg, 41, /* AppOperCond */ response); result != command_status::Ok && result != command_status::CRCError) { // CRCs are allowed to fail for ACMD41
 					if (result == command_status::TimeoutError) {
 						return init_status::CardNotResponding; // this is the path that we will get if no responses happen whatsoever
