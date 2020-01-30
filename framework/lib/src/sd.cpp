@@ -359,7 +359,7 @@ sd::init_status sd::init_card() {
 
 	// Wait 2ms (datasheet says to wait 2ms before starting init procedure -- see SD spec)
 	
-	util::delay(2);
+	util::delay(20); // give it a bit to start itself
 
 	//  2. Send CMD0 (SET_TO_IDLE)
 	if (send_command(0) != command_status::Ok) return init_status::InternalPeripheralError;
@@ -368,7 +368,7 @@ sd::init_status sd::init_card() {
 	{
 		card_interface_condition_r7 response;
 		card_interface_condition_r7 argument;
-		argument.check_pattern = 0x3F;
+		argument.check_pattern = 0xAA;
 		argument.voltage_accepted = 1;
 		auto result = send_command(argument, 0x8, response);
 
@@ -376,7 +376,7 @@ sd::init_status sd::init_card() {
 			// Version 2 or greater card
 			
 			// Check validity of response
-			if (response.check_pattern != 0x3F || response.voltage_accepted != 1) {
+			if (response.check_pattern != 0xAA || response.voltage_accepted != 1) {
 				// Unusable card
 				return init_status::NotSupported;
 			}
