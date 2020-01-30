@@ -252,8 +252,11 @@ command_status send_command(Argument argument, uint32_t index, Response& respons
 		SDIO_STA_CMDREND  | SDIO_STA_CMDSENT  | SDIO_STA_DATAEND  |\
 		SDIO_STA_DBCKEND));
 
-	if ((SDIO->RESPCMD & 0b111111) != (index & 0b111111))  {
-		return command_status::WrongResponse;
+	if constexpr (sizeof(Response) == 4) {
+		// Only valid when not long response (see RM 31.9.5)
+		if ((SDIO->RESPCMD & 0b111111) != (index & 0b111111))  {
+			return command_status::WrongResponse;
+		}
 	}
 
 	return command_status::Ok;
