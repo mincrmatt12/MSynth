@@ -217,13 +217,31 @@ command_status send_command(Argument argument, uint32_t index, Response& respons
 		
 	}
 
+	// Copy the response before we error out on CRC / TIMEOUT so that extra error handling can be implemented downstream
+	// if desired.
+	if constexpr (sizeof(Response) == 4) {
+		response = const_cast<const Response &>(*reinterpret_cast<const volatile Response *>(&SDIO->RESP1));
+	}
+	else {
+		((uint32_t *)(&response))[3] = SDIO->RESP1; // 127:96
+		((uint32_t *)(&response))[2] = SDIO->RESP2;
+		((uint32_t *)(&response))[1] = SDIO->RESP3;
+		((uint32_t *)(&response))[0] = SDIO->RESP4;
+	}
+
 	if (SDIO->STA & SDIO_STA_CTIMEOUT) {
-		SDIO->ICR = SDIO_STA_CTIMEOUT;
+		SDIO->ICR = ((uint32_t)(SDIO_STA_CCRCFAIL | SDIO_STA_DCRCFAIL | SDIO_STA_CTIMEOUT |\
+			SDIO_STA_DTIMEOUT | SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR  |\
+			SDIO_STA_CMDREND  | SDIO_STA_CMDSENT  | SDIO_STA_DATAEND  |\
+			SDIO_STA_DBCKEND));
 
 		return command_status::TimeoutError;
 	}
 	if (SDIO->STA & SDIO_STA_CCRCFAIL) {
-		SDIO->ICR = SDIO_STA_CCRCFAIL;
+		SDIO->ICR = ((uint32_t)(SDIO_STA_CCRCFAIL | SDIO_STA_DCRCFAIL | SDIO_STA_CTIMEOUT |\
+			SDIO_STA_DTIMEOUT | SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR  |\
+			SDIO_STA_CMDREND  | SDIO_STA_CMDSENT  | SDIO_STA_DATAEND  |\
+			SDIO_STA_DBCKEND));
 
 		return command_status::CRCError;
 	}
