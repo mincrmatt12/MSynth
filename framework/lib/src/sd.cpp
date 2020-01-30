@@ -339,10 +339,19 @@ sd::init_status sd::init_card() {
 			// no pwrsav
 			// no clken
 			0;
+
+	util::delay(1); // there's some mumbo-jumbo about wait times, and although I _could_ calculate them, a 1ms delay won't kill anything here
+
+	// Stop clock
+	SDIO->CLKCR &= ~SDIO_CLKCR_CLKEN;
+
+	util::delay(1);
 	
 	// Enable SD power
 	
-	SDIO->POWER = SDIO_POWER_PWRCTRL_1;
+	SDIO->POWER = 0b11;
+
+	util::delay(1);
 	
 	// Enable SD CLK
 	
