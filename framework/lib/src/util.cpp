@@ -7,6 +7,7 @@ void util::delay(uint32_t ms)
 
   while (ms)
   {
+	asm volatile ("nop");
     if((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) != 0)
     {
 		--ms;
