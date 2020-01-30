@@ -509,13 +509,15 @@ sd::init_status sd::init_card() {
 		
 		if (result.csd_structure_ver == csd_register::CsdVersion1SC) {
 			// Check card size from C_SIZE and C_SIZE_MULT and READ_BL_LEN
-			card.length = ((result.v1.card_size + 1) * (1 << (result.v1.card_size_mult + 2))) * (1 << result.read_bl_len);
+			card.length = (uint64_t(result.v1.card_size + 1) * (1 << (result.v1.card_size_mult + 2))) * (1 << result.read_bl_len);
 		}
 		else {
 			// Check card size using a much more sane method
 			card.length = (uint64_t(result.v2.card_size + 1) * 512 * 1024);
 		}
 	}
+
+	// Stage 3: read SCR + set bus width + trns speed
 
 	card.status = init_status::Ok;
 	return init_status::Ok;
