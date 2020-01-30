@@ -184,7 +184,7 @@ command_status send_command(Argument argument, uint32_t index, Response& respons
 	static_assert(sizeof(Response) == 4 || sizeof(Response) == 16 || std::is_empty_v<Response>, "response must be either 32bits or 128bits or empty.");
 	if constexpr (!std::is_empty_v<Response>) {
 		SDIO->CMD = (index | 
-				(sizeof(Response) == 4 ? SDIO_CMD_WAITRESP_0 : SDIO_CMD_WAITRESP) |
+				(sizeof(Response) == 4 ? 0b1 << SDIO_CMD_WAITRESP_Pos : 0b11 << SDIO_CMD_WAITRESP_Pos) |
 				SDIO_CMD_CPSMEN);
 	
 
