@@ -30,6 +30,16 @@ TestState SdTest::loop() {
 				draw::text(80, 120, "RunningSdInit", bigFnt, 0b11'11'11'11);
 				sd_init_error = sd::init_card();
 				break;
+			case WaitingForActionSelection:
+				draw::fill(0);
+				{
+					char buf[64] = {0}; snprintf(buf, 64, "size: %u KiB; est %d GB", (uint32_t)(sd::card.length / 1024), (int)(sd::card.length / (1000*1000*1000)));
+					draw::text(draw::text(30, 60, "SD Init OK!", bigFnt, 0xff), 60, buf, uiFnt, 0b11'10'10'10);
+				}
+				draw::text(120, 120, "1 - erase/read/write", uiFnt, 0xff);
+				draw::text(120, 152, "2 - read sector 0", uiFnt, 0xff);
+				draw::text(120, 184, "3 - exit", uiFnt, 0xff);
+				break;
 			case ShowingInitError:
 				{
 					draw::fill(0b11'11'01'01);
@@ -84,6 +94,11 @@ TestState SdTest::loop() {
 		case RunningSdInit:
 			if (sd_init_error != sd::init_status::Ok) state = ShowingInitError;
 			else state = WaitingForActionSelection;
+			return InProgress;
+		case WaitingForActionSelection:
+			if (periph::ui::buttons_pressed) {
+				if (periph::ui::pressed(periph::ui::button::N3)) return Ok;
+			}
 			return InProgress;
 		default:
 			return Fail;
