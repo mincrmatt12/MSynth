@@ -474,6 +474,8 @@ sd::init_status sd::init_card() {
 		return init_status::CardNotResponding;
 	}
 
+	util::delay(5); // give the card some time to respond to that amazingly large 128-bit response
+
 	// Alright, we're almost there
 	
 	{
