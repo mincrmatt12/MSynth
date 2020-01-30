@@ -513,7 +513,7 @@ sd::init_status sd::init_card() {
 		}
 		else {
 			// Check card size using a much more sane method
-			card.length = ((result.v2.card_size + 1) * 512 * 1024);
+			card.length = (uint64_t(result.v2.card_size + 1) * 512 * 1024);
 		}
 	}
 
