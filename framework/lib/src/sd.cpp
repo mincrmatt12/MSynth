@@ -329,7 +329,7 @@ void sd::init(bool enable_exti) {
 }
 
 bool sd::inserted() {
-	return !LL_GPIO_IsInputPinSet(GPIOG, LL_GPIO_PIN_0);
+	return LL_GPIO_IsInputPinSet(GPIOG, LL_GPIO_PIN_0); // TODO: inverted because of my stupidity
 }
 
 sd::init_status sd::init_card() {
