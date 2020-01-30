@@ -174,7 +174,7 @@ struct csd_register {
 };
 
 template<typename Argument, typename Response>
-command_status send_command(Argument argument, uint32_t index, Response& response, uint32_t timeout=1) {
+command_status send_command(Argument argument, uint32_t index, Response& response, uint32_t timeout=50) {
 	if constexpr (!std::is_empty_v<Argument>) {
 		static_assert(sizeof(Argument) == 4, "argument must be a 32-bit value");
 
@@ -238,27 +238,17 @@ command_status send_command(Argument argument, uint32_t index, Response& respons
 		return command_status::WrongResponse;
 	}
 
-	if constexpr (sizeof(Response) == 4) {
-		response = const_cast<const Response &>(*reinterpret_cast<const volatile Response *>(&SDIO->RESP1));
-	}
-	else {
-		((uint32_t *)(&response))[3] = SDIO->RESP1; // 127:96
-		((uint32_t *)(&response))[2] = SDIO->RESP2;
-		((uint32_t *)(&response))[1] = SDIO->RESP3;
-		((uint32_t *)(&response))[0] = SDIO->RESP4;
-	}
-
 	return command_status::Ok;
 }
 
 template<typename Argument=uint32_t>
-inline command_status send_command(Argument argument, uint32_t index, uint32_t timeout=1) {
+inline command_status send_command(Argument argument, uint32_t index, uint32_t timeout=50) {
 	no_response x;
 	return send_command(argument, index, x, timeout);
 }
 
 inline command_status send_command(uint32_t index) {
-	return send_command(no_response{}, index, 1);
+	return send_command(no_response{}, index, 50);
 }
 
 sd::Card sd::card;
