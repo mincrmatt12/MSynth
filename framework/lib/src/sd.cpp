@@ -266,12 +266,11 @@ void sd::init(bool enable_exti) {
 
 		// Setup SDIO pins
 
-		init.Pin = LL_GPIO_PIN_8 | LL_GPIO_PIN_9 | LL_GPIO_PIN_10 | LL_GPIO_PIN_11 |
-				   LL_GPIO_PIN_12;
+		init.Pin = LL_GPIO_PIN_8 | LL_GPIO_PIN_9 | LL_GPIO_PIN_10 | LL_GPIO_PIN_11;
 		init.Mode = LL_GPIO_MODE_ALTERNATE;
 		init.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 		init.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-		init.Pull = LL_GPIO_PULL_NO;
+		init.Pull = LL_GPIO_PULL_UP;
 		init.Alternate = LL_GPIO_AF_12;
 
 		LL_GPIO_Init(GPIOC, &init);
@@ -279,6 +278,11 @@ void sd::init(bool enable_exti) {
 		init.Pin = LL_GPIO_PIN_2;
 
 		LL_GPIO_Init(GPIOD, &init);
+
+		init.Pin = LL_GPIO_PIN_12;
+		init.Pull = LL_GPIO_PULL_NO;
+
+		LL_GPIO_Init(GPIOC, &init);
 
 		// Setup the inserted pin gpio
 		
