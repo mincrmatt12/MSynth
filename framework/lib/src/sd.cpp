@@ -533,6 +533,7 @@ sd::init_status sd::init_card() {
 		}
 	}
 	
+	util::delay(5);
 	// STAGE 3: select the card and move to faster bus speed
 	
 	{
@@ -541,12 +542,14 @@ sd::init_status sd::init_card() {
 			return init_status::CardNotResponding;
 		}
 
+		if (false) {
 		util::delay(1);
 
 		// Change bus speed settings
 		
 		SDIO->CLKCR = 0 /* clockdiv 0 = ~24mhz */ |
-			SDIO_CLKCR_WIDBUS; // 4-bit bus
+			SDIO_CLKCR_CLKEN | // clock still enabled
+			SDIO_CLKCR_WIDBUS; // 4-bit bus 
 		
 		// Wait a bit for the clock to take hold
 		
