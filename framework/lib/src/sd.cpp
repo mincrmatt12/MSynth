@@ -537,27 +537,23 @@ sd::init_status sd::init_card() {
 	
 	{
 		status_r1 status;
+
 		if (send_command((uint32_t)card.RCA << 16, 7 /* SELECT_DESELECT_CARD */, status) != command_status::Ok) {
 			return init_status::CardNotResponding;
 		}
 
-		if (false) {
 		util::delay(1);
-
-		// Change bus speed settings
-		
-		SDIO->CLKCR = 0 /* clockdiv 0 = ~24mhz */ |
-			SDIO_CLKCR_CLKEN | // clock still enabled
-			SDIO_CLKCR_WIDBUS; // 4-bit bus 
-		
-		// Wait a bit for the clock to take hold
-		
-		util::delay(5);
 
 		// Set bus width
 		if (send_command<uint32_t>(card.RCA << 16, 55 /* APP_CMD */) != command_status::Ok) return init_status::InternalPeripheralError;
 		if (send_command<uint32_t>(2 /* 0b10 4 bit */, 6 /* ACMD6 */, status) != command_status::Ok) return init_status::NotSupported;
-		}
+
+		// Change bus speed settings
+		
+		SDIO->CLKCR |= SDIO_CLKCR_WIDBUS_0;
+
+		util::delay(5);
+
 	}
 
 	if (card.card_type != Card::CardTypeSDHC) {
