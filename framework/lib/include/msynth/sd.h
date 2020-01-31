@@ -39,6 +39,7 @@ namespace sd {
 		CardNotInserted, // The card was removed
 		CRCError, // The checksum was bad
 		DMATransferError, // There was a transfer error in the STM32 DMA -- most likely the buffer was not located in physical RAM
+		CardWillForeverMoreBeStuckInAnEndlessWaltzSendingData, // The card failed to respond to a stop transmission
 	};
 
 	// Holds information about initialized SD card
@@ -73,6 +74,9 @@ namespace sd {
 
 		// Card info 
 		uint16_t RCA;
+		uint8_t  NSAC; // data timeout * 100
+
+		// Various card info flags
 	};
 
 	// Perform card initialization
