@@ -4,6 +4,8 @@
 #include <msynth/periphcfg.h>
 #include <msynth/util.h>
 
+uint8_t sector_dump[512];
+
 void SdTest::start() {
 	state = (sd::inserted() ? WaitingForStartInserted : WaitingForStartEjected);
 	uiFnt  = fs::open("fonts/djv_16.fnt");
@@ -30,6 +32,16 @@ TestState SdTest::loop() {
 				draw::text(80, 120, "RunningSdInit", bigFnt, 0b11'11'11'11);
 				sd_init_error = sd::init_card();
 				break;
+			case ResettingCardAndExiting:
+				draw::fill(0b11'01'01'11);
+				draw::text(70, 120, "ResettingCardAndExiting", bigFnt, 0b11'11'11'11);
+				sd::reset();
+				return Ok;
+			case ReadingDataFromCardForDump:
+				draw::fill(0b11'01'01'11);
+				draw::text(20, 120, "ReadingDataFromCardForDump", bigFnt, 0b11'11'11'11);
+				sd_access_error = sd::read(8192, sector_dump, 1);
+				break;
 			case WaitingForActionSelection:
 				draw::fill(0);
 				{
@@ -37,8 +49,24 @@ TestState SdTest::loop() {
 					draw::text(draw::text(30, 60, "SD Init OK!", bigFnt, 0xff), 60, buf, uiFnt, 0b11'10'10'10);
 				}
 				draw::text(120, 120, "1 - erase/read/write", uiFnt, 0xff);
-				draw::text(120, 152, "2 - read sector 0", uiFnt, 0xff);
+				draw::text(120, 152, "2 - read sector 8192", uiFnt, 0xff);
 				draw::text(120, 184, "3 - exit", uiFnt, 0xff);
+				break;
+			case ShowingDumpOnScreen:
+				draw::fill(0);
+				// Header
+				draw::text(2, 14, "Sector 8192 dump ([ENTER] to return to menu)", uiFnt, 0xff);
+				{
+					char buf[8] = {0};
+					int x = 2;
+					int y = 30;
+					for (int pos = 0; pos < 512; ++pos) {
+						snprintf(buf, 8, "%02x", sector_dump[pos]);
+						x = draw::text(x, y, buf, uiFnt, 0xff) + 10;
+						if (x > 460) {y += 16; x = 2;}
+						if (y > 270) break;
+					}
+				}
 				break;
 			case ShowingInitError:
 				{
@@ -78,6 +106,38 @@ TestState SdTest::loop() {
 					util::delay(1000);
 				}
 				break;
+			case ShowingAccessError:
+				{
+					draw::fill(0b11'11'01'01);
+					uint16_t cursor = draw::text(50, 120, "ERR: ", bigFnt, 0b11'11'11'10);
+					switch (sd_access_error) {
+						case sd::access_status::DMATransferError:
+							draw::text(cursor, 120, "DMATransferError", bigFnt, 0xff);
+							break;
+						case sd::access_status::CardLockedError:
+							draw::text(cursor, 120, "CardNotInserted", bigFnt, 0xff);
+							break;
+						case sd::access_status::CardNotInserted:
+							draw::text(cursor, 120, "CardNotInserted", bigFnt, 0xff);
+							break;
+						case sd::access_status::CardNotResponding:
+							draw::text(cursor, 120, "CardNotResponding", bigFnt, 0xff);
+							break;
+						case sd::access_status::CardWillForeverMoreBeStuckInAnEndlessWaltzSendingData:
+							draw::text(cursor, 120, "CardWillForeverMoreBeStuckInAnEndlessWaltzSendingData", uiFnt, 0xff);
+							break;
+						case sd::access_status::CRCError:
+							draw::text(cursor, 120, "CRCError", bigFnt, 0xff);
+							break;
+						case sd::access_status::NotInitialized:
+							draw::text(cursor, 120, "NotInitialized", bigFnt, 0xff);
+							break;
+						default:
+							break;
+					}
+					util::delay(2000);
+				}
+				break;
 			default:
 				break;
 		}
@@ -97,8 +157,15 @@ TestState SdTest::loop() {
 			return InProgress;
 		case WaitingForActionSelection:
 			if (periph::ui::buttons_pressed) {
-				if (periph::ui::pressed(periph::ui::button::N3)) return Ok;
+				if (periph::ui::pressed(periph::ui::button::N3)) state = ResettingCardAndExiting;
+				if (periph::ui::pressed(periph::ui::button::N2)) state = ReadingDataFromCardForDump;
 			}
+			return InProgress;
+		case ReadingDataFromCardForDump:
+			if (sd_access_error != sd::access_status::Ok) state = ShowingAccessError;
+			else state = ShowingDumpOnScreen;
+		case ShowingDumpOnScreen:
+			if (periph::ui::pressed(periph::ui::button::ENTER)) state = WaitingForActionSelection;
 			return InProgress;
 		default:
 			return Fail;
