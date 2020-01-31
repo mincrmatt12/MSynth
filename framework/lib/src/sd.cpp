@@ -522,7 +522,6 @@ sd::init_status sd::init_card() {
 		// 	- (TODO): Set the card speed (used to determine what sample rates are reasonable)
 		// 	- (TODO): other stuff with the CSD?
 		
-		
 		if (result.csd_structure_ver == csd_register::CsdVersion1SC) {
 			// Check card size from C_SIZE and C_SIZE_MULT and READ_BL_LEN
 			card.length = (uint64_t(result.v1.card_size + 1) * (1 << (result.v1.card_size_mult + 2))) * (1 << result.read_bl_len);
