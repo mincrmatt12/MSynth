@@ -558,8 +558,141 @@ sd::init_status sd::init_card() {
 		// Set bus width
 		if (send_command<uint32_t>(card.RCA << 16, 55 /* APP_CMD */) != command_status::Ok) return init_status::InternalPeripheralError;
 		if (send_command<uint32_t>(2 /* 0b10 4 bit */, 6 /* ACMD6 */, status) != command_status::Ok) return init_status::NotSupported;
+		}
+	}
+
+	if (card.card_type != Card::CardTypeSDHC) {
+		// (OPTIONAL) STAGE 4: Set block length
+		status_r1 status;
+		if (send_command(512, 16, status) != command_status::Ok) return init_status::CardNotResponding;
+		if (status.block_len_error) return init_status::NotSupported;
+	}
+	else {
+		// (OPTIONAL) STAGE 4: check support for cmd23
 	}
 
 	card.status = init_status::Ok;
 	return init_status::Ok;
 }
+
+void sd::reset() {
+	// Is sd card init?
+	if (card.status != init_status::Ok) return;
+
+	// Deinit card
+	card.status = init_status::NotInitialized;
+
+	// TODO: Send shutdown command
+	
+	// Set card to IDLE and disable power
+	send_command(0);
+
+	util::delay(5);
+
+	SDIO->CLKCR &= ~SDIO_CLKCR_CLKEN;
+
+	util::delay(5);
+
+	SDIO->POWER = 0;
+
+	util::delay(5);
+
+	return;
+}
+
+// Blocking read
+sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t length_in_sectors) {
+	uint32_t * out_buffer = static_cast<uint32_t *>(result_buffer);
+	if (card.status != init_status::Ok) return access_status::NotInitialized;
+
+	// TODO: SUPPORT MULTIBLOCK LENGTH
+	
+	if (length_in_sectors == 0) return access_status::Ok;
+
+	if (card.card_type != Card::CardTypeSDHC) address *= 512;
+
+	// Program the DPSM for this transfer
+	SDIO->DLEN = length_in_sectors * 512;
+	SDIO->DTIMER = 0xFFFF;
+	SDIO->DCTRL = (0b1001u /* 512 */ << SDIO_DCTRL_DBLOCKSIZE_Pos) |
+		SDIO_DCTRL_DTDIR /* card -> host */; 
+
+	util::delay(1);
+
+	status_r1 status;
+	if (length_in_sectors == 1) {
+		// Start transfer
+		SDIO->DCTRL |= SDIO_DCTRL_DTEN;
+		if (send_command(address, 17, status) != command_status::Ok) {
+			clear_sd_flags();
+
+			return sd::access_status::CardNotResponding;
+		}
+	}
+	else {
+		// Start transfer (multiblock)
+		SDIO->DCTRL |= SDIO_DCTRL_DTEN;
+		if (send_command(address, 18, status) != command_status::Ok) {
+			clear_sd_flags();
+
+			return sd::access_status::CardNotResponding;
+		}
+	}
+
+	// Check status flags
+	if (status.address_error) {clear_sd_flags(); return access_status::InvalidAddress;}
+	if (status.card_is_locked) {clear_sd_flags(); return access_status::CardLockedError;}
+
+	// Begin transferring
+	
+	while (!(SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DATAEND))) {
+		// Read lots of FIFO if possible
+		if (SDIO->STA & SDIO_STA_RXFIFOHF) {
+			for (int i = 0; i < 8; ++i) {
+				*out_buffer++ = SDIO->FIFO; // presumably this will use ldm with no increment
+			}
+		}
+
+		// TODO: Read timeout
+	}
+
+	// Send data end
+	if (SDIO->STA & SDIO_STA_DATAEND && length_in_sectors > 1) {
+		// Send data end
+		if (send_command(0xDEAD9009, 12, status) != command_status::Ok) {
+			clear_sd_flags();
+
+			return access_status::CardWillForeverMoreBeStuckInAnEndlessWaltzSendingData;
+		}
+	}
+
+	if (SDIO->STA & SDIO_STA_RXOVERR) {
+		// fifo overrun (kill this flag and pray nothing too bad happens)
+		clear_sd_flags();
+
+		return access_status::DMATransferError;
+	}
+
+	if (SDIO->STA & SDIO_STA_DCRCFAIL) {
+		clear_sd_flags();
+
+		return access_status::CRCError;
+	}
+
+	if (SDIO->STA & SDIO_STA_DTIMEOUT) {
+		clear_sd_flags();
+
+		return access_status::CardNotResponding;
+	}
+
+	while (SDIO->STA & SDIO_STA_RXDAVL) {
+		*out_buffer++ = SDIO->FIFO;
+
+		// TODO: READ TIMEOUT
+	}
+
+	clear_sd_flags();
+
+	return access_status::Ok;
+}
+
