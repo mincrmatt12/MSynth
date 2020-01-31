@@ -105,6 +105,27 @@ struct send_op_cond_argument {
 	};
 };
 
+struct scr_register {
+	union {
+		uint64_t raw_data;
+
+		// 0 - CMD20
+		// 1 - CMD23
+		// 2 - CMD48/49
+		// 3 - CMD58/59
+		reg_bit<64, 32, 4> cmd_support;
+		reg_bit<64, 38, 4> sd_specx;
+		reg_bit<64, 42, 1> sd_spec4;
+		reg_bit<64, 43, 4> ex_security;
+		reg_bit<64, 47, 1> sd_spec3;
+		reg_bit<64, 48, 4> sd_bus_widths;
+		reg_bit<64, 52, 3> sd_security;
+		reg_bit<64, 55, 1> data_stat_after_erase;
+		reg_bit<64, 46, 4> sd_spec;
+		reg_bit<64, 60, 4> scr_structure_ver;
+	};
+};
+
 struct ocr_register {
 	union {
 		uint32_t raw_data;
