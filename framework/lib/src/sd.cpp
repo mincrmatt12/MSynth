@@ -194,6 +194,13 @@ struct csd_register {
 	};
 };
 
+inline void clear_sd_flags() {
+	SDIO->ICR = ((uint32_t)(SDIO_STA_CCRCFAIL | SDIO_STA_DCRCFAIL | SDIO_STA_CTIMEOUT |\
+		SDIO_STA_DTIMEOUT | SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR  |\
+		SDIO_STA_CMDREND  | SDIO_STA_CMDSENT  | SDIO_STA_DATAEND  |\
+		SDIO_STA_DBCKEND));
+}
+
 template<typename Argument, typename Response>
 command_status send_command(Argument argument, uint32_t index, Response& response, uint32_t timeout=50) {
 	if constexpr (!std::is_empty_v<Argument>) {
@@ -229,10 +236,7 @@ command_status send_command(Argument argument, uint32_t index, Response& respons
 		}
 
 		// Clear flags
-		SDIO->ICR = ((uint32_t)(SDIO_STA_CCRCFAIL | SDIO_STA_DCRCFAIL | SDIO_STA_CTIMEOUT |\
-			SDIO_STA_DTIMEOUT | SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR  |\
-			SDIO_STA_CMDREND  | SDIO_STA_CMDSENT  | SDIO_STA_DATAEND  |\
-			SDIO_STA_DBCKEND));
+		clear_sd_flags();
 
 		return command_status::Ok;
 		
@@ -251,27 +255,18 @@ command_status send_command(Argument argument, uint32_t index, Response& respons
 	}
 
 	if (SDIO->STA & SDIO_STA_CTIMEOUT) {
-		SDIO->ICR = ((uint32_t)(SDIO_STA_CCRCFAIL | SDIO_STA_DCRCFAIL | SDIO_STA_CTIMEOUT |\
-			SDIO_STA_DTIMEOUT | SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR  |\
-			SDIO_STA_CMDREND  | SDIO_STA_CMDSENT  | SDIO_STA_DATAEND  |\
-			SDIO_STA_DBCKEND));
+		clear_sd_flags();
 
 		return command_status::TimeoutError;
 	}
 	if (SDIO->STA & SDIO_STA_CCRCFAIL) {
-		SDIO->ICR = ((uint32_t)(SDIO_STA_CCRCFAIL | SDIO_STA_DCRCFAIL | SDIO_STA_CTIMEOUT |\
-			SDIO_STA_DTIMEOUT | SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR  |\
-			SDIO_STA_CMDREND  | SDIO_STA_CMDSENT  | SDIO_STA_DATAEND  |\
-			SDIO_STA_DBCKEND));
+		clear_sd_flags();
 
 		return command_status::CRCError;
 	}
 
 	// Clear flags
-	SDIO->ICR = ((uint32_t)(SDIO_STA_CCRCFAIL | SDIO_STA_DCRCFAIL | SDIO_STA_CTIMEOUT |\
-		SDIO_STA_DTIMEOUT | SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR  |\
-		SDIO_STA_CMDREND  | SDIO_STA_CMDSENT  | SDIO_STA_DATAEND  |\
-		SDIO_STA_DBCKEND));
+	clear_sd_flags();
 
 	if constexpr (sizeof(Response) == 4) {
 		// Only valid when not long response (see RM 31.9.5)
