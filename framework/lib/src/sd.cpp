@@ -550,10 +550,9 @@ sd::init_status sd::init_card() {
 
 		// Change bus speed settings
 		
-		SDIO->CLKCR |= SDIO_CLKCR_WIDBUS_0;
+		SDIO->CLKCR = 0x00 | SDIO_CLKCR_CLKEN | SDIO_CLKCR_WIDBUS_0;
 
 		util::delay(5);
-
 	}
 
 	if (card.card_type != Card::CardTypeSDHC) {
@@ -597,6 +596,10 @@ void sd::reset() {
 
 // Blocking read
 sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t length_in_sectors) {
+	// POLLING gets stuck a lot, use a slower clock speed
+	
+	SDIO->CLKCR = 0x6E | SDIO_CLKCR_WIDBUS_0 | SDIO_CLKCR_CLKEN;
+
 	uint32_t * out_buffer = static_cast<uint32_t *>(result_buffer);
 	if (card.status != init_status::Ok) return access_status::NotInitialized;
 
@@ -608,7 +611,7 @@ sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t leng
 
 	// Program the DPSM for this transfer
 	SDIO->DLEN = length_in_sectors * 512;
-	SDIO->DTIMER = 0xFFFF;
+	SDIO->DTIMER = 0xFFF;
 	SDIO->DCTRL = (0b1001u /* 512 */ << SDIO_DCTRL_DBLOCKSIZE_Pos) |
 		SDIO_DCTRL_DTDIR /* card -> host */; 
 
@@ -640,12 +643,10 @@ sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t leng
 
 	// Begin transferring
 	
-	while (!(SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DATAEND))) {
+	while (!(SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DATAEND | SDIO_STA_STBITERR))) {
 		// Read lots of FIFO if possible
-		if (SDIO->STA & SDIO_STA_RXFIFOHF) {
-			for (int i = 0; i < 8; ++i) {
-				*out_buffer++ = SDIO->FIFO; // presumably this will use ldm with no increment
-			}
+		while (SDIO->STA & SDIO_STA_RXFIFOHF) {
+			*out_buffer++ = SDIO->FIFO; 
 		}
 
 		// TODO: Read timeout
@@ -668,13 +669,19 @@ sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t leng
 		return access_status::DMATransferError;
 	}
 
-	if (SDIO->STA & SDIO_STA_DCRCFAIL) {
+	else if (SDIO->STA & SDIO_STA_DCRCFAIL) {
 		clear_sd_flags();
 
 		return access_status::CRCError;
 	}
 
-	if (SDIO->STA & SDIO_STA_DTIMEOUT) {
+	else if (SDIO->STA & SDIO_STA_DTIMEOUT) {
+		clear_sd_flags();
+
+		return access_status::CardNotResponding;
+	}
+
+	else if (!(SDIO->STA & SDIO_STA_DATAEND)) {
 		clear_sd_flags();
 
 		return access_status::CardNotResponding;
@@ -687,6 +694,8 @@ sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t leng
 	}
 
 	clear_sd_flags();
+
+	SDIO->CLKCR = 0x00 | SDIO_CLKCR_WIDBUS_0 | SDIO_CLKCR_CLKEN;
 
 	return access_status::Ok;
 }
