@@ -31,15 +31,17 @@ The flags are:
 ```
                             LSB
   
-XXX 0 10 1 01100      1 10 10                
-|// | || | |////      | |/ ||
-|   | || | |          | |  |-is PRIMARY
-|   | || | |          | |  --is TEST
-|   | || | -FSuse slot| --EEPROM slot used
-|   | || -uses FS     --uses EEPROM       
-|   | |--uses LOWscreen RAM layout
-|   | --is installed                         
-|   -- supports APPCMDs                     
+X 000 10 1 01100      1 10 10                
+| ||| || | |////      | |/ ||
+| ||| || | |          | |  |-is PRIMARY
+| ||| || | |          | |  --is TEST
+| ||| || | -FSuse slot| --EEPROM slot used
+| ||| || -uses FS     --uses EEPROM       
+| ||| |--uses LOWscreen RAM layout
+| ||| --is installed                         
+| ||-- supports APPCMDs                     
+| |-- uses the SD card
+| -- uses the USB port
 -- unused
 ```
 
