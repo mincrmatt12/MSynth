@@ -3,8 +3,9 @@
 #include <msynth/fs.h>
 #include <msynth/periphcfg.h>
 #include <msynth/util.h>
+#include <stm32f4xx.h>
 
-uint8_t sector_dump[512];
+alignas(8) uint8_t sector_dump[512];
 
 void SdTest::start() {
 	state = (sd::inserted() ? WaitingForStartInserted : WaitingForStartEjected);
@@ -166,6 +167,9 @@ TestState SdTest::loop() {
 			else state = ShowingDumpOnScreen;
 		case ShowingDumpOnScreen:
 			if (periph::ui::pressed(periph::ui::button::ENTER)) state = WaitingForActionSelection;
+			return InProgress;
+		case ShowingAccessError:
+			state = WaitingForActionSelection;
 			return InProgress;
 		default:
 			return Fail;
