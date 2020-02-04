@@ -3,7 +3,8 @@
 //
 // Loosely based on the one in the HAL, but designed for simpler use
 // 
-// Also contains a _SUPER BASIC_ filesystem driver.
+// Also contains a decently time efficient and very space efficient FAT32 implementation.
+// This impl is based (as much as possible) around ephemeral state wrappers as opposed to glutinous global globs of data.
 
 #include <stdint.h>
 
