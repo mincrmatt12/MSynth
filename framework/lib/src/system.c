@@ -116,6 +116,9 @@ void SystemInit() {
 	SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
 	SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
 		SysTick_CTRL_ENABLE_Msk;                   /* Enable the Systick Timer */
+
+	// set the nvic to have max priority settings
+	NVIC_SetPriorityGrouping(0);
 }
 
 // semihosting
