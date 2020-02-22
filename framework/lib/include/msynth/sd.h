@@ -13,7 +13,7 @@ namespace sd {
 	
 	// Turn on the RCC to the SD peripheral, and setup the DETECTED gpio.
 	// Enabling the EXTi line is optional
-	void init(bool enable_exti=false);
+	void init(bool enable_dma=true, bool enable_exti=false);
 
 	// Card initiailzation status
 	enum struct init_status {
@@ -33,6 +33,7 @@ namespace sd {
 	enum struct access_status {
 		Ok, // Data is present in the buffer / on the card and the operation was succesful
 		InProgress, // The data is being transferred with no current errors
+		Busy, // The thing is already going
 		InvalidAddress, // The data is at an invalid address
 		CardLockedError, // The card was placed in a password lock state
 		CardNotResponding, // The card is not responding / timeout error
@@ -153,4 +154,7 @@ namespace sd {
 
 	// CARD EXTERN
 	extern Card card;
+
+	// INTERRUPT ROUTINES
+	void sdio_interrupt(); // Call from SDIO_IRQHandler if using DMA mode.
 }

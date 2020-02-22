@@ -6,6 +6,7 @@
 #include <stm32f4xx_ll_exti.h>
 #include <stm32f4xx_ll_system.h>
 #include <stm32f4xx_ll_bus.h>
+#include <stm32f4xx_ll_dma.h>
 #include <type_traits>
 
 // Sd card driver
@@ -290,7 +291,7 @@ inline command_status send_command(uint32_t index) {
 
 sd::Card sd::card;
 
-void sd::init(bool enable_exti) {
+void sd::init(bool enable_dma, bool enable_exti) {
 	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOG);
 	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOC);
 	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOD);
@@ -342,6 +343,32 @@ void sd::init(bool enable_exti) {
 
 		LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTG, LL_SYSCFG_EXTI_LINE0);
 		LL_EXTI_Init(&init);
+	}
+
+	// Enable the DMA if the app wants to. Note that the interrupt lines _should_ be setup
+	// at this point, so lets also turn on the interrupts
+	if (enable_dma) {
+		LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA2);
+		
+		LL_DMA_SetStreamPriorityLevel(DMA2, LL_DMA_STREAM_3, LL_DMA_PRIORITY_HIGH);
+		LL_DMA_SetChannelSelection(DMA2, LL_DMA_STREAM_3, LL_DMA_CHANNEL_4);
+		LL_DMA_SetMode(DMA2, LL_DMA_STREAM_3, LL_DMA_MODE_PFCTRL);
+		LL_DMA_SetPeriphAddress(DMA2, LL_DMA_STREAM_3, (uint32_t)&SDIO->FIFO);
+		LL_DMA_SetPeriphSize(DMA2, LL_DMA_STREAM_3, LL_DMA_PDATAALIGN_WORD);
+		LL_DMA_SetMemorySize(DMA2, LL_DMA_STREAM_3, LL_DMA_MDATAALIGN_WORD);
+		LL_DMA_SetPeriphBurstxfer(DMA2, LL_DMA_STREAM_3, LL_DMA_PBURST_INC4);
+		LL_DMA_SetMemoryBurstxfer(DMA2, LL_DMA_STREAM_3, LL_DMA_MBURST_INC4);
+		LL_DMA_EnableFifoMode(DMA2, LL_DMA_STREAM_3);
+		LL_DMA_SetFIFOThreshold(DMA2, LL_DMA_STREAM_3, LL_DMA_FIFOTHRESHOLD_FULL);
+
+		LL_DMA_SetMemoryIncMode(DMA2, LL_DMA_STREAM_3, LL_DMA_MEMORY_INCREMENT);
+		LL_DMA_SetPeriphIncMode(DMA2, LL_DMA_STREAM_3, LL_DMA_PERIPH_NOINCREMENT);
+
+		// Enable SDIO global interrupt
+		SDIO->MASK = 0; // disable all interrupts from the SDIO
+
+		NVIC_SetPriority(SDIO_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 5, 0));
+		NVIC_EnableIRQ(SDIO_IRQn);
 	}
 
 	// SD peripheral config is done during init_card
@@ -566,6 +593,7 @@ sd::init_status sd::init_card() {
 	}
 
 	card.status = init_status::Ok;
+	card.active_state = Card::ActiveStateInactive;
 	return init_status::Ok;
 }
 
@@ -700,3 +728,106 @@ sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t leng
 	return access_status::Ok;
 }
 
+sd::access_status sd::read(uint32_t address, void *result_buffer, uint32_t length_in_sectors, void (*callback)(void *, sd::access_status), void *argument) {
+	// DMA uses <electroboomvoice>FULL CLOCK SPEED</electroboomvoice>, start by instead checking if there is an ongoing
+	// transmission
+	
+	if (card.active_state != sd::Card::ActiveStateInactive) {
+		return access_status::Busy;
+	}
+	if (card.status != init_status::Ok) {
+		return access_status::NotInitialized;
+	}
+
+	card.active_state = Card::ActiveStateReading;
+	card.active_callback = callback;
+	card.argument = argument;
+
+	// Begin by setting up the DMA transfer
+	
+	LL_DMA_SetMemoryAddress(DMA2, LL_DMA_STREAM_3, (uint32_t)result_buffer);
+	LL_DMA_SetDataTransferDirection(DMA2, LL_DMA_STREAM_3, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+	LL_DMA_SetDataLength(DMA2, LL_DMA_STREAM_3, length_in_sectors * 128);
+	LL_DMA_EnableStream(DMA2, LL_DMA_STREAM_3);
+
+	// Send the read command
+	if (card.card_type != Card::CardTypeSDHC) address *= 512;
+
+	clear_sd_flags();
+
+	SDIO->DTIMER = 0xFFFFF;
+	SDIO->DLEN = length_in_sectors * 512;
+	SDIO->DCTRL = (0b1001u << SDIO_DCTRL_DBLOCKSIZE_Pos) | SDIO_DCTRL_DTDIR | SDIO_DCTRL_DMAEN | SDIO_DCTRL_DTEN;
+	SDIO->MASK = SDIO_MASK_RXOVERRIE | SDIO_MASK_DCRCFAILIE | SDIO_MASK_DTIMEOUTIE | SDIO_MASK_DATAENDIE | SDIO_MASK_STBITERRIE;
+
+	status_r1 status;
+	if (length_in_sectors == 1) {
+		if (send_command(address, 17, status) != command_status::Ok) {
+			clear_sd_flags();
+			
+			LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_3);
+			return access_status::CardNotResponding;
+		}
+	}
+	else {
+		if (send_command(address, 18, status) != command_status::Ok) {
+			clear_sd_flags();
+			
+			LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_3);
+			return access_status::CardNotResponding;
+		}
+	}
+
+
+	// Check status flags
+	if (status.address_error) {clear_sd_flags(); LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_3); return access_status::InvalidAddress;}
+	if (status.card_is_locked) {clear_sd_flags(); LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_3); return access_status::CardLockedError;}
+
+	// Operation in progress
+	return access_status::InProgress;
+}
+
+// Interrupt handler
+
+void sd::sdio_interrupt() {
+	if (card.active_state == Card::ActiveStateReading) {
+		access_status mode = access_status::Ok;
+		LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_3);
+		LL_DMA_ClearFlag_TC3(DMA2);
+		
+		SDIO->MASK = 0;
+		if (SDIO->STA & SDIO_STA_DATAEND) {
+			if (SDIO->DLEN > 512) {
+				// Send a stop command
+				status_r1 status;
+				if (send_command(0xDA15C00L, 12, status) != command_status::Ok) {
+					clear_sd_flags();
+
+					mode = access_status::CardWillForeverMoreBeStuckInAnEndlessWaltzSendingData;
+				}
+			}
+		}
+		else if (SDIO->STA & SDIO_STA_DCRCFAIL) {
+			mode = access_status::CRCError;
+		}
+		else if (SDIO->STA & SDIO_STA_DTIMEOUT) {
+			mode = access_status::CardNotResponding;
+		}
+		else if (SDIO->STA & SDIO_STA_RXOVERR) {
+			mode = access_status::DMATransferError;
+		}
+		if (LL_DMA_IsActiveFlag_TE3(DMA2)) {
+			// DMA TE, todo
+			mode = access_status::DMATransferError;
+			LL_DMA_ClearFlag_TE3(DMA2);
+		}
+
+		// Call the function
+		card.active_callback(card.argument, mode);
+		card.active_state = Card::ActiveStateInactive;
+
+		SDIO->DCTRL = 0;
+	}
+
+	clear_sd_flags();
+}
