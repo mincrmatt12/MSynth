@@ -23,3 +23,9 @@ namespace util {
 
 	void delay(uint32_t ms);
 }
+
+#ifdef __cplusplus
+#define ISR(Name) extern "C" void __attribute__((used)) Name ## _IRQHandler()
+#else
+#define ISR(Name) void __attribute__((used)) Name ## _IRQHandler() __attribute__((used))
+#endif
