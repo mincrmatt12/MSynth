@@ -111,7 +111,7 @@ function(add_app
 	file(GLOB_RECURSE app_srcs "${app_dir}/src/*.cpp" "${app_dir}/src/*.cc" "${app_dir}/src/*.c")
 
 	# Add the startup file
-	list(APPEND app_srcs ${CMAKE_CURRENT_BINARY_DIR}/${target_name}_startup.s)
+	list(INSERT app_srcs 0 ${CMAKE_CURRENT_BINARY_DIR}/${target_name}_startup.s)
 	
 	# Setup linker scripts
 	if (${app_size} EQUAL 16 OR ${app_size} EQUAL 32 OR ${app_size} EQUAL 64 OR ${app_size} EQUAL 128)
