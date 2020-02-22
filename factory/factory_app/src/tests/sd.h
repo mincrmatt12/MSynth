@@ -32,6 +32,7 @@ private:
 		ResettingCardAndExiting,
 		ShowingInitError,
 		ShowingAccessError,
+		AsyncReadingCard,
 		UndefinedState
 	} state = WaitingForStartInserted, last_state = UndefinedState;
 
@@ -40,4 +41,6 @@ private:
 
 	sd::init_status sd_init_error;
 	sd::access_status sd_access_error;
+
+	void dma_read_finished_callback(sd::access_status result);
 };

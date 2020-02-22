@@ -4,6 +4,7 @@
 #include <msynth/periphcfg.h>
 #include <msynth/util.h>
 #include <stm32f4xx.h>
+#include <string.h>
 
 alignas(8) uint8_t sector_dump[512];
 
@@ -41,7 +42,14 @@ TestState SdTest::loop() {
 			case ReadingDataFromCardForDump:
 				draw::fill(0b11'01'01'11);
 				draw::text(20, 120, "ReadingDataFromCardForDump", bigFnt, 0b11'11'11'11);
+				memset(sector_dump, 0, sizeof(sector_dump));
 				sd_access_error = sd::read(8192, sector_dump, 1);
+				break;
+			case AsyncReadingCard:
+				draw::fill(0b11'01'01'11);
+				draw::text(20, 120, "AsyncReadingCard", bigFnt, 0b11'11'11'11);
+				memset(sector_dump, 0, sizeof(sector_dump));
+				sd_access_error = sd::read(8192, sector_dump, 1, &SdTest::dma_read_finished_callback, *this);
 				break;
 			case WaitingForActionSelection:
 				draw::fill(0);
@@ -51,7 +59,8 @@ TestState SdTest::loop() {
 				}
 				draw::text(120, 120, "1 - erase/read/write", uiFnt, 0xff);
 				draw::text(120, 152, "2 - read sector 8192", uiFnt, 0xff);
-				draw::text(120, 184, "3 - exit", uiFnt, 0xff);
+				draw::text(120, 184, "3 - read sector 8192 async", uiFnt, 0xff);
+				draw::text(120, 184 + 32, "4 - exit", uiFnt, 0xff);
 				break;
 			case ShowingDumpOnScreen:
 				draw::fill(0);
@@ -133,6 +142,9 @@ TestState SdTest::loop() {
 						case sd::access_status::NotInitialized:
 							draw::text(cursor, 120, "NotInitialized", bigFnt, 0xff);
 							break;
+						case sd::access_status::Busy:
+							draw::text(cursor, 120, "Busy", bigFnt, 0xff);
+							break;
 						default:
 							break;
 					}
@@ -159,6 +171,7 @@ TestState SdTest::loop() {
 		case WaitingForActionSelection:
 			if (periph::ui::buttons_pressed) {
 				if (periph::ui::pressed(periph::ui::button::N3)) state = ResettingCardAndExiting;
+				if (periph::ui::pressed(periph::ui::button::N3)) state = AsyncReadingCard;
 				if (periph::ui::pressed(periph::ui::button::N2)) state = ReadingDataFromCardForDump;
 			}
 			return InProgress;
@@ -170,8 +183,15 @@ TestState SdTest::loop() {
 			return InProgress;
 		case ShowingAccessError:
 			state = WaitingForActionSelection;
+		case AsyncReadingCard:
 			return InProgress;
 		default:
 			return Fail;
 	}
+}
+
+void SdTest::dma_read_finished_callback(sd::access_status result) {
+	sd_access_error = result;
+	if (result != sd::access_status::Ok) state = ShowingAccessError;
+	else state = ShowingDumpOnScreen;
 }

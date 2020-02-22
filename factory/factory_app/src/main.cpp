@@ -15,6 +15,10 @@
 #include "tests/lcd.h"
 #include "tests/sd.h"
 
+ISR(SDIO) {
+	sd::sdio_interrupt();
+}
+
 int main() {
 	periph::setup_dbguart();
 	puts("Starting FACTORY");
@@ -26,7 +30,7 @@ int main() {
 	puts("Starting AUDIO");
 	sound::init();
 	puts("Starting SD");
-	sd::init(false); // disable EXTi
+	sd::init(true, false); // disable EXTi
 
 	const void * insnFnt = fs::open("fonts/lato_32.fnt");
 
