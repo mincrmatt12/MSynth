@@ -253,7 +253,6 @@ command_status send_command(Argument argument, uint32_t index, Response& respons
 		
 	}
 
-continue_handling_response:
 	// Copy the response before we error out on CRC / TIMEOUT so that extra error handling can be implemented downstream
 	// if desired.
 	if constexpr (sizeof(Response) == 4) {
@@ -386,7 +385,7 @@ void sd::init(bool enable_dma, bool enable_exti) {
 }
 
 bool sd::inserted() {
-	return LL_GPIO_IsInputPinSet(GPIOG, LL_GPIO_PIN_0); // TODO: inverted because of my stupidity
+	return !LL_GPIO_IsInputPinSet(GPIOG, LL_GPIO_PIN_0);
 }
 
 sd::init_status sd::init_card() {
