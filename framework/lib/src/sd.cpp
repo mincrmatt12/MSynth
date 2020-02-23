@@ -9,8 +9,6 @@
 #include <stm32f4xx_ll_dma.h>
 #include <type_traits>
 
-#include <stdio.h>
-
 // Sd card driver
 
 enum struct command_status {
@@ -641,8 +639,6 @@ sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t leng
 	uint32_t * out_buffer = static_cast<uint32_t *>(result_buffer);
 	if (card.status != init_status::Ok) return access_status::NotInitialized;
 
-	// TODO: SUPPORT MULTIBLOCK LENGTH
-	
 	if (length_in_sectors == 0) return access_status::Ok;
 
 	if (card.card_type != Card::CardTypeSDHC) address *= 512;
