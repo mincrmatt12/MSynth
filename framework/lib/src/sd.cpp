@@ -9,6 +9,8 @@
 #include <stm32f4xx_ll_dma.h>
 #include <type_traits>
 
+#include <stdio.h>
+
 // Sd card driver
 
 enum struct command_status {
@@ -202,8 +204,16 @@ inline void clear_sd_flags() {
 		SDIO_STA_DBCKEND));
 }
 
+// Send a command to the CPSM
+//
+// NOTE: this clears the SD status flags, so make sure to preserve them
+// NOTE: it might not look like it though, since some of the flags are constantly updated,
+// NOTE: whereas some of them are only set once
 template<typename Argument, typename Response>
 command_status send_command(Argument argument, uint32_t index, Response& response, uint32_t timeout=50) {
+	// clear all status flags
+	clear_sd_flags();
+
 	if constexpr (!std::is_empty_v<Argument>) {
 		static_assert(sizeof(Argument) == 4, "argument must be a 32-bit value");
 
@@ -243,6 +253,7 @@ command_status send_command(Argument argument, uint32_t index, Response& respons
 		
 	}
 
+continue_handling_response:
 	// Copy the response before we error out on CRC / TIMEOUT so that extra error handling can be implemented downstream
 	// if desired.
 	if constexpr (sizeof(Response) == 4) {
@@ -272,7 +283,7 @@ command_status send_command(Argument argument, uint32_t index, Response& respons
 	if constexpr (sizeof(Response) == 4) {
 		// Only valid when not long response (see RM 31.9.5)
 		if ((SDIO->RESPCMD & 0b111111) != (index & 0b111111))  {
-			return command_status::WrongResponse;
+			if (index != 12) return command_status::WrongResponse;
 		}
 	}
 
@@ -680,6 +691,8 @@ sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t leng
 		// TODO: Read timeout
 	}
 
+	uint32_t status_word = SDIO->STA;
+
 	// Send data end
 	if (SDIO->STA & SDIO_STA_DATAEND && length_in_sectors > 1) {
 		// Send data end
@@ -697,24 +710,25 @@ sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t leng
 		return access_status::DMATransferError;
 	}
 
-	else if (SDIO->STA & SDIO_STA_DCRCFAIL) {
+	else if (status_word & SDIO_STA_DCRCFAIL) {
 		clear_sd_flags();
 
 		return access_status::CRCError;
 	}
 
-	else if (SDIO->STA & SDIO_STA_DTIMEOUT) {
+	else if (status_word & SDIO_STA_DTIMEOUT) {
 		clear_sd_flags();
 
 		return access_status::CardNotResponding;
 	}
 
-	else if (!(SDIO->STA & SDIO_STA_DATAEND)) {
+	else if (!(status_word & SDIO_STA_DATAEND)) {
 		clear_sd_flags();
 
 		return access_status::CardNotResponding;
 	}
 
+	// use real STA since it gets updated live (for this flag, anyways)
 	while (SDIO->STA & SDIO_STA_RXDAVL) {
 		*out_buffer++ = SDIO->FIFO;
 
@@ -755,7 +769,7 @@ sd::access_status sd::read(uint32_t address, void *result_buffer, uint32_t lengt
 
 	clear_sd_flags();
 
-	SDIO->DTIMER = 0xFFFFF;
+	SDIO->DTIMER = 0xFFFF;
 	SDIO->DLEN = length_in_sectors * 512;
 	SDIO->DCTRL = (0b1001u << SDIO_DCTRL_DBLOCKSIZE_Pos) | SDIO_DCTRL_DTDIR | SDIO_DCTRL_DMAEN | SDIO_DCTRL_DTEN;
 	SDIO->MASK = SDIO_MASK_RXOVERRIE | SDIO_MASK_DCRCFAILIE | SDIO_MASK_DTIMEOUTIE | SDIO_MASK_DATAENDIE | SDIO_MASK_STBITERRIE;
@@ -764,7 +778,12 @@ sd::access_status sd::read(uint32_t address, void *result_buffer, uint32_t lengt
 	if (length_in_sectors == 1) {
 		if (send_command(address, 17, status) != command_status::Ok) {
 			clear_sd_flags();
+
+			// No data will come in if this fails, so we can just disable the DPSM
 			
+			SDIO->DCTRL = 0;
+			SDIO->MASK = 0;
+
 			LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_3);
 			return access_status::CardNotResponding;
 		}
@@ -772,6 +791,11 @@ sd::access_status sd::read(uint32_t address, void *result_buffer, uint32_t lengt
 	else {
 		if (send_command(address, 18, status) != command_status::Ok) {
 			clear_sd_flags();
+
+			// No data will come in if this fails, so we can just disable the DPSM
+			
+			SDIO->DCTRL = 0;
+			SDIO->MASK = 0;
 			
 			LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_3);
 			return access_status::CardNotResponding;
@@ -796,21 +820,22 @@ void sd::sdio_interrupt() {
 		LL_DMA_ClearFlag_TC3(DMA2);
 		
 		SDIO->MASK = 0;
+		uint32_t status_word = SDIO->STA;
 		if (SDIO->STA & SDIO_STA_DATAEND) {
 			if (SDIO->DLEN > 512) {
 				// Send a stop command
 				status_r1 status;
-				if (send_command(0xDA15C00L, 12, status) != command_status::Ok) {
+				if (send_command(0, 12, status) != command_status::Ok) {
 					clear_sd_flags();
 
 					mode = access_status::CardWillForeverMoreBeStuckInAnEndlessWaltzSendingData;
 				}
 			}
 		}
-		else if (SDIO->STA & SDIO_STA_DCRCFAIL) {
+		else if (status_word & SDIO_STA_DCRCFAIL) {
 			mode = access_status::CRCError;
 		}
-		else if (SDIO->STA & SDIO_STA_DTIMEOUT) {
+		else if (status_word & SDIO_STA_DTIMEOUT) {
 			mode = access_status::CardNotResponding;
 		}
 		else if (SDIO->STA & SDIO_STA_RXOVERR) {
