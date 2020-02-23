@@ -6,7 +6,7 @@
 #include <stm32f4xx.h>
 #include <string.h>
 
-alignas(8) uint8_t sector_dump[512];
+alignas(4) uint8_t sector_dump[1024];
 
 void SdTest::start() {
 	state = (sd::inserted() ? WaitingForStartInserted : WaitingForStartEjected);
@@ -49,7 +49,7 @@ TestState SdTest::loop() {
 				draw::fill(0b11'01'01'11);
 				draw::text(20, 120, "AsyncReadingCard", bigFnt, 0b11'11'11'11);
 				memset(sector_dump, 0, sizeof(sector_dump));
-				sd_access_error = sd::read(8192, sector_dump, 1, &SdTest::dma_read_finished_callback, *this);
+				sd::read(8192, sector_dump, 2, &SdTest::dma_read_finished_callback, *this);
 				break;
 			case WaitingForActionSelection:
 				draw::fill(0);
@@ -170,7 +170,7 @@ TestState SdTest::loop() {
 			return InProgress;
 		case WaitingForActionSelection:
 			if (periph::ui::buttons_pressed) {
-				if (periph::ui::pressed(periph::ui::button::N3)) state = ResettingCardAndExiting;
+				if (periph::ui::pressed(periph::ui::button::N4)) state = ResettingCardAndExiting;
 				if (periph::ui::pressed(periph::ui::button::N3)) state = AsyncReadingCard;
 				if (periph::ui::pressed(periph::ui::button::N2)) state = ReadingDataFromCardForDump;
 			}
@@ -192,6 +192,7 @@ TestState SdTest::loop() {
 
 void SdTest::dma_read_finished_callback(sd::access_status result) {
 	sd_access_error = result;
+	last_state = AsyncReadingCard;
 	if (result != sd::access_status::Ok) state = ShowingAccessError;
 	else state = ShowingDumpOnScreen;
 }
