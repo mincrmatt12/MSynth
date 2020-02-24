@@ -138,6 +138,7 @@ namespace usb {
 
 		template<typename T>
 		inline std::enable_if_t<is_supported_device_v<T>> assign() {
+			reset();
 			held = reinterpret_cast<void *>(new T());
 			index = pack_index<T, SupportedDevices...>;
 		}
