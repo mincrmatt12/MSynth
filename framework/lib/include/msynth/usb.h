@@ -28,12 +28,18 @@
 
 #include <type_traits>
 #include <stdint.h>
+#include <util.h>
 
 #include <stm32f4xx.h>
 #include <stm32f4xx_ll_gpio.h>
 #include <stm32f4xx_ll_bus.h>
 #include <stm32f4xx_ll_system.h>
 #include <stm32f4xx_ll_exti.h>
+
+#define USB_OTG_FS_HOST       ((USB_OTG_HostTypeDef *)((uint32_t )USB_OTG_FS_PERIPH_BASE + USB_OTG_HOST_BASE))
+#define USB_OTG_FS_HC(i)      ((USB_OTG_HostChannelTypeDef *)((uint32_t)USB_OTG_FS_PERIPH_BASE + USB_OTG_HOST_CHANNEL_BASE + (i)*USB_OTG_HOST_CHANNEL_SIZE))
+#define USB_OTG_FS_PCGCCTL    *(__IO uint32_t *)((uint32_t)USB_OTG_FS_PERIPH_BASE + USB_OTG_PCGCCTL_BASE)
+#define USB_OTG_FS_HPRT0      *(__IO uint32_t *)((uint32_t)USB_OTG_FS_PERIPH_BASE + USB_OTG_HOST_PORT_BASE)
 
 namespace usb {
 	// There are some helper utilities here, but the majority of USB stuff happens through the Host struct
@@ -120,14 +126,39 @@ namespace usb {
 		//
 		// Once enabled, a peripheral may be detected at any time. It is wise (although not strictly required) to poll inserted() after
 		// calling this function, so that devices which check if a host is smart don't get confused.
-		void enable();
+		void enable() {
+			// Enable the HPRT interrupts
+			USB_OTG_FS->GINTMSK |= USB_OTG_GINTMSK_PRTIM;
+			// Set FS
+			USB_OTG_FS_HOST->HCFG = 1; // Set 48mhz FS (will adjust)
+
+			// Turn on port power
+			LL_GPIO_SetOutputPin(GPIOE, LL_GPIO_PIN_2); // dwrrrrrrrrrn
+			USB_OTG_FS_HPRT0 |= USB_OTG_HPRT_PPWR;
+		}
 		// Kill port power. This hard disconnects the device, and init_periph will need to be called again.
 		//
 		// Note that it is not necessary to handle overcurrents manually, as this class takes care of this functionality internally.
-		void disable();
+		void disable() {
+			// Check the state of the USB
+			if (inserted()) {
+				// Device was inserted, so let's disable the port
+				USB_OTG_FS_HPRT0 &= ~(USB_OTG_HPRT_PENA);
+
+				util::delay(5);
+			}
+
+			// Kill port power
+			USB_OTG_FS_HPRT0 &= ~(USB_OTG_HPRT_PPWR);
+			LL_GPIO_ResetOutputPin(GPIOE, LL_GPIO_PIN_2);
+
+			// TODO: Clean up after the old thing
+		}
 
 		// PERIPHERAL DETECTION
-		bool inserted();
+		bool inserted() {
+			return USB_OTG_FS_HPRT0 & USB_OTG_HPRT_PCSTS;
+		}
 
 		// INITIALIZATION
 		
@@ -139,11 +170,73 @@ namespace usb {
 		// At the very least, ensure the USB global interrupt goes to the correct irq function. If overcurrent is not mapped correctly
 		// the system may hang if the connected peripheral triggers an overcurrent situation.
 		void init() {
+			LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_OTGFS);
+			LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOB);
+			LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOE);
+
+			util::delay(2);
+			// Start resetting USB
+			USB_OTG_FS->GRSTCTL |= USB_OTG_GRSTCTL_CSRST;
+
 			// Setup the power switch GPIOs
 			{
 				LL_GPIO_InitTypeDef init;
-				
+				init.Mode = LL_GPIO_MODE_OUTPUT;
+				init.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+				init.Pull = LL_GPIO_PULL_NO;
+				init.Pin = LL_GPIO_PIN_2;
+				init.Speed = LL_GPIO_SPEED_FREQ_LOW;
+
+				LL_GPIO_Init(GPIOE, &init); // USB_EN
+
+				init.Pin = LL_GPIO_PIN_3;
+				init.Mode = LL_GPIO_MODE_INPUT;
+				init.Pull = LL_GPIO_PULL_UP;
+
+				LL_GPIO_Init(GPIOE, &init); // USB_FAULT
+
+				init.Pin = LL_GPIO_PIN_14 | LL_GPIO_PIN_15;
+				init.Mode = LL_GPIO_MODE_ALTERNATE;
+				init.Alternate = LL_GPIO_AF_10; // this isn't in the datasheet but it's in the examples
+				init.Pull = LL_GPIO_PULL_NO;
+				init.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+
+				LL_GPIO_Init(GPIOB, &init);
 			}
+
+			while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_CSRST) {;}
+			
+			// Initialize USB
+			USB_OTG_FS->GUSBCFG |= USB_OTG_GUSBCFG_FHMOD;
+			USB_OTG_FS->GUSBCFG &= ~USB_OTG_GUSBCFG_TRDT;
+			USB_OTG_FS->GUSBCFG |= (0x6 << USB_OTG_GUSBCFG_TRDT_Pos);
+			USB_OTG_FS->GUSBCFG &= ~USB_OTG_GUSBCFG_HNPCAP;
+
+			// Clear all interrupts
+			USB_OTG_FS->GINTSTS = 0xFFFFFFFF; // technically not compliant but screw it
+
+			// Power UP PHY
+			USB_OTG_FS_PCGCCTL = 0;
+			USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_PWRDWN;
+
+			// Disable sensing
+			USB_OTG_FS->GCCFG &= ~(USB_OTG_GCCFG_VBUSASEN | USB_OTG_GCCFG_VBUSBSEN);
+			USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_NOVBUSSENS;
+			// Disable SOF
+			USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_SOFOUTEN;
+		
+			// Flush all FIFOs
+			USB_OTG_FS->GRSTCTL = (15 << USB_OTG_GRSTCTL_TXFNUM_Pos) | USB_OTG_GRSTCTL_TXFFLSH;
+			while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH) {;}
+			USB_OTG_FS->GRSTCTL |= USB_OTG_GRSTCTL_RXFFLSH;
+			while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_RXFFLSH) {;}
+
+			// Enable mode mismatch/OTG interrupts
+			USB_OTG_FS->GINTMSK = 0;
+			USB_OTG_FS->GINTMSK |= USB_OTG_GINTMSK_OTGINT | USB_OTG_GINTMSK_MMISM;
+
+			// We are now inited. To continue host initilaization,
+			// the user must call enable();
 		}
 
 		// DEVICE STATE / API
@@ -174,7 +267,6 @@ namespace usb {
 		// Various state flags:
 		// These are kept in an app-controlled variable because the peripheral docs are unclear.
 		// Some of these flags in the USB are cleared as part of the interrupt scheme.
-		uint16_t device_detected : 1;
 
 		StateHolder device;
 	};
