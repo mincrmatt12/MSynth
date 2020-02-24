@@ -4,7 +4,7 @@ cmake_policy(SET CMP0069 NEW)
 set(FRAMEWORK_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 # FLAGS SETUP
-set(COMMON_FLAGS " -Os --specs=nano.specs -nostdlib -mthumb -mcpu=cortex-m4 -g")
+set(COMMON_FLAGS " -Os --specs=nano.specs -nostdlib -mthumb -mcpu=cortex-m4 -ggdb3")
 # check if the user specified they wanted the FPU enabled
 if (${MSYNTH_USE_FPU})
 	set(COMMON_FLAGS "${COMMON_FLAGS} -mfloat-abi=hard -mfpu=fpv4-sp-d16")
