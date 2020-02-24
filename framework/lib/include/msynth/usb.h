@@ -75,6 +75,9 @@ namespace usb {
 	//                    template<typename T> get()
 	//                    template<typename T> assign()
 	//                    reset();
+
+	// StaticStateHolder - a tagged union, in effect. Good for when there's no heap, or when
+	// there's only one device type. It also forgoes any destructing logic, so can shrink program size
 	template<typename ...SupportedDevices>
 	struct StaticStateHolder {
 		template<typename T>
@@ -86,13 +89,13 @@ namespace usb {
 		}
 
 		template<typename T>
-		inline std::enable_if_t<is_supported_device_v<T>, const T> get() const {
-			return reinterpret_cast<const T>(storage);
+		inline std::enable_if_t<is_supported_device_v<T>, const T&> get() const {
+			return *reinterpret_cast<const T*>(&storage);
 		}
 
 		template<typename T>
-		inline std::enable_if_t<is_supported_device_v<T>, T> get() {
-			return reinterpret_cast<T>(storage);
+		inline std::enable_if_t<is_supported_device_v<T>, T&> get() {
+			return *reinterpret_cast<T*>(&storage);
 		}
 
 		template<typename T>
@@ -105,15 +108,63 @@ namespace usb {
 			index = npos;
 		}
 
-		const inline static std::size_t npos = -1;
 	private:
+		const inline static std::size_t npos = -1;
 		std::size_t index = npos;
 		typename std::aligned_union<0, SupportedDevices...>::type storage;
 	};
+
 	
+
+	template<typename ...SupportedDevices>
+	struct DynamicStateHolder {
+		template<typename T>
+		inline static constexpr bool is_supported_device_v = is_contained_v<T, SupportedDevices...>;
+
+		template<typename T>
+		inline std::enable_if_t<is_supported_device_v<T>, bool> holds() const {
+			return index == pack_index<T, SupportedDevices...>;
+		}
+
+		template<typename T>
+		inline std::enable_if_t<is_supported_device_v<T>, const T&> get() const {
+			return *reinterpret_cast<const T*>(held);
+		}
+
+		template<typename T>
+		inline std::enable_if_t<is_supported_device_v<T>, T&> get() {
+			return *reinterpret_cast<T*>(held);
+		}
+
+		template<typename T>
+		inline std::enable_if_t<is_supported_device_v<T>> assign() {
+			held = reinterpret_cast<void *>(new T());
+			index = pack_index<T, SupportedDevices...>;
+		}
+
+		void reset() {
+			if (index != npos) {
+				// This extreme expression will call the correct destructor using short circuit evaluation.
+				((index == pack_index<SupportedDevices, SupportedDevices...> && (delete reinterpret_cast<SupportedDevices *>(held), true)) || ...);
+			}
+			index = npos;
+			held = nullptr;
+		}
+
+	private:
+		const inline static std::size_t npos = -1;
+		std::size_t index = npos;
+		void * held = nullptr;
+	};
+
 	template<template<typename...> typename StateHolderImpl, typename ...SupportedDevices>
 	struct Host {
 		using StateHolder = StateHolderImpl<SupportedDevices...>;
+
+		// Non-copyable type
+		Host(const Host& other) = delete;
+		// Non-moveable type (global/references only)
+		Host(Host &&other) = delete;
 
 		// Host doesn't actually have very many responsibilities; only those core to keeping things running.
 		// It also handles channel allocation and packet management, as well as power management.
@@ -146,6 +197,8 @@ namespace usb {
 				USB_OTG_FS_HPRT0 &= ~(USB_OTG_HPRT_PENA);
 
 				util::delay(5);
+
+				device.reset();
 			}
 
 			// Kill port power
@@ -251,12 +304,12 @@ namespace usb {
 		}
 
 		template<typename T>
-		inline std::enable_if_t<is_contained_v<T, SupportedDevices...>, const T> dev() const {
+		inline std::enable_if_t<is_contained_v<T, SupportedDevices...>, const T&> dev() const {
 			return device.template get<T>();
 		}
 
 		template<typename T>
-		inline std::enable_if_t<is_contained_v<T, SupportedDevices...>, T> dev() {
+		inline std::enable_if_t<is_contained_v<T, SupportedDevices...>, T&> dev() {
 			return device.template get<T>();
 		}
 
