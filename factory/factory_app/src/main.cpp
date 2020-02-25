@@ -5,6 +5,7 @@
 #include <msynth/draw.h>
 #include <msynth/sound.h>
 #include <msynth/sd.h>
+#include <msynth/usb.h>
 #include <stm32f4xx.h>
 #include <stdio.h>
 
@@ -15,8 +16,14 @@
 #include "tests/lcd.h"
 #include "tests/sd.h"
 
+usb::Host<usb::StaticStateHolder, usb::MidiDevice> usb_host;
+
 ISR(SDIO) {
 	sd::sdio_interrupt();
+}
+
+ISR(OTG_FS) {
+	usb_host.usb_global_irq();
 }
 
 int main() {
@@ -31,6 +38,8 @@ int main() {
 	sound::init();
 	puts("Starting SD");
 	sd::init(true, false); // disable EXTi
+	puts("Starting USB");
+	usb_host.init();
 
 	const void * insnFnt = fs::open("fonts/lato_32.fnt");
 
