@@ -3,3 +3,5 @@ _*fs/
 
 *.gdb_history
 */compile_commands.json
+*.clangd*
+*.ccls*
