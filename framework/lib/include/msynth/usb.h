@@ -28,7 +28,7 @@
 
 #include <type_traits>
 #include <stdint.h>
-#include <util.h>
+#include "util.h"
 
 #include <stm32f4xx.h>
 #include <stm32f4xx_ll_gpio.h>
@@ -40,13 +40,15 @@
 #define USB_OTG_FS_HC(i)      ((USB_OTG_HostChannelTypeDef *)((uint32_t)USB_OTG_FS_PERIPH_BASE + USB_OTG_HOST_CHANNEL_BASE + (i)*USB_OTG_HOST_CHANNEL_SIZE))
 #define USB_OTG_FS_PCGCCTL    *(__IO uint32_t *)((uint32_t)USB_OTG_FS_PERIPH_BASE + USB_OTG_PCGCCTL_BASE)
 #define USB_OTG_FS_HPRT0      *(__IO uint32_t *)((uint32_t)USB_OTG_FS_PERIPH_BASE + USB_OTG_HOST_PORT_BASE)
+#define USB_OTG_FS_DFIFO(i)   *(__IO uint32_t *)((uint32_t)USB_OTG_FS_PERIPH_BASE + USB_OTG_FIFO_BASE + (i) * USB_OTG_FIFO_SIZE)
 
 namespace usb {
 	// There are some helper utilities here, but the majority of USB stuff happens through the Host struct
 	
 	enum struct init_status {
 		Ok,
-		NotSupported
+		NotSupported,
+		NotInserted
 	};
 
 	template<typename T, typename ...Ts>
@@ -115,7 +117,6 @@ namespace usb {
 	};
 
 	
-
 	template<typename ...SupportedDevices>
 	struct DynamicStateHolder {
 		template<typename T>
@@ -166,6 +167,8 @@ namespace usb {
 		Host(const Host& other) = delete;
 		// Non-moveable type (global/references only)
 		Host(Host &&other) = delete;
+		// Default constructor
+		Host() {};
 
 		// Host doesn't actually have very many responsibilities; only those core to keeping things running.
 		// It also handles channel allocation and packet management, as well as power management.
@@ -218,7 +221,26 @@ namespace usb {
 		
 		// Initialize a connected peripheral. To check which peripheral was connected (if init_status == Ok)
 		// use the template specializations of inserted.
-		init_status init_periph();
+		init_status init_periph() {
+			if (!inserted()) return init_status::NotInserted;
+			// Start by resetting the port
+			USB_OTG_FS_HPRT0 |= USB_OTG_HPRT_PRST;
+			// Wait at least twice the value in the datasheet, you never know what bullcrap is in them these days
+			util::delay(20);
+			USB_OTG_FS_HPRT0 &= ~(USB_OTG_HPRT_PRST);
+			// Wait for a PENCHNG interrupt
+			while (!got_penchng) {;}
+			got_penchng = 0;
+
+			// Check enumerated speed
+			if ((USB_OTG_FS_HPRT0 & USB_OTG_HPRT_PSPD) == USB_OTG_HPRT_PSPD_0) {
+				// Full speed
+			}
+			else {
+				// Low speed
+				// TODO: set the speed; i don't think i own anything though that'll trigger this
+			}
+		}
 
 		// Initialize the host AHB-peripheral. This function will only work correctly if interrupts are set up correctly.
 		// At the very least, ensure the USB global interrupt goes to the correct irq function. If overcurrent is not mapped correctly
@@ -289,6 +311,9 @@ namespace usb {
 			USB_OTG_FS->GINTMSK = 0;
 			USB_OTG_FS->GINTMSK |= USB_OTG_GINTMSK_OTGINT | USB_OTG_GINTMSK_MMISM;
 
+			// Enable interrupts
+			USB_OTG_FS->GAHBCFG |= USB_OTG_GAHBCFG_GINT;
+
 			// We are now inited. To continue host initilaization,
 			// the user must call enable();
 		}
@@ -316,12 +341,21 @@ namespace usb {
 
 		// INTERRUPTS
 		void overcurrent_irq();
-		void usb_global_irq();
+		void usb_global_irq() {
+			// Do nothing RN
+		}
 	private:
 		// Various state flags:
 		// These are kept in an app-controlled variable because the peripheral docs are unclear.
 		// Some of these flags in the USB are cleared as part of the interrupt scheme.
+		volatile uint16_t got_penchng : 1;
 
 		StateHolder device;
+	};
+
+	struct MidiDevice {
+	};
+
+	struct HID {
 	};
 }
