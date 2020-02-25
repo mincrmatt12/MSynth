@@ -223,10 +223,12 @@ namespace usb {
 		// use the template specializations of inserted.
 		init_status init_periph() {
 			if (!inserted()) return init_status::NotInserted;
+
+change_speed:
 			// Start by resetting the port
 			USB_OTG_FS_HPRT0 |= USB_OTG_HPRT_PRST;
 			// Wait at least twice the value in the datasheet, you never know what bullcrap is in them these days
-			util::delay(20);
+			util::delay(15);
 			USB_OTG_FS_HPRT0 &= ~(USB_OTG_HPRT_PRST);
 			// Wait for a PENCHNG interrupt
 			while (!got_penchng) {;}
@@ -235,11 +237,39 @@ namespace usb {
 			// Check enumerated speed
 			if ((USB_OTG_FS_HPRT0 & USB_OTG_HPRT_PSPD) == USB_OTG_HPRT_PSPD_0) {
 				// Full speed
+				if ((USB_OTG_FS_HOST->HCFG & USB_OTG_HCFG_FSLSPCS) != 1) {
+					USB_OTG_FS_HOST->HCFG = 1; // Set the speed 
+					util::delay(1);
+					// Reset again
+					goto change_speed;
+				}
+
+				USB_OTG_FS_HOST->HFIR = 47999U;
 			}
 			else {
 				// Low speed
-				// TODO: set the speed; i don't think i own anything though that'll trigger this
+				if ((USB_OTG_FS_HOST->HCFG & USB_OTG_HCFG_FSLSPCS) != 2) {
+					USB_OTG_FS_HOST->HCFG = 2; // Set the speed 
+					util::delay(1);
+					// Reset again
+					goto change_speed;
+				}
+
+				USB_OTG_FS_HOST->HFIR = 6999U;
 			}
+
+			// Set the FIFO sizes
+			//
+			// Addresses are in units of words, maximum 0x140
+			// We set up the bus with:
+			// 	- 0x80 (128 word) RX and non-periodic TX fifo
+			// 	- 0x3C (60 word) TX periodic fifo
+			
+			USB_OTG_FS->GRXFSIZ = 0x80;
+			USB_OTG_FS->DIEPTXF0_HNPTXFSIZ = (0x80 << 16) | 0x80 /* start address */;
+			USB_OTG_FS->HPTXFSIZ = (0x3C << 16) | 0x100;
+
+			// We are now inited at the host level. Begin device enumeration.
 		}
 
 		// Initialize the host AHB-peripheral. This function will only work correctly if interrupts are set up correctly.
