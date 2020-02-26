@@ -15,6 +15,7 @@
 #include "tests/audio.h"
 #include "tests/lcd.h"
 #include "tests/sd.h"
+#include "tests/usb.h"
 
 usb::Host<usb::StaticStateHolder, usb::MidiDevice> usb_host;
 
@@ -22,7 +23,7 @@ ISR(SDIO) {
 	sd::sdio_interrupt();
 }
 
-ISR(OTG_FS) {
+ISR(OTG_HS) {
 	usb_host.usb_global_irq();
 }
 
@@ -48,13 +49,15 @@ int main() {
 		Ui,
 		Audio,
 		LCD,
-		SD
+		SD,
+		USB
 	} state;
 
 	UiTest ui_test;
 	AudioTest audio_test;
 	LcdTest lcd_test;
 	SdTest sd_test;
+	UsbTest usb_test;
 
 drawMenu:
 	draw::fill(0);
@@ -63,6 +66,7 @@ drawMenu:
 	draw::text(16, 38 + 64, " 2 - Audio", insnFnt, 255);
 	draw::text(16, 38 + 64 + 32, " 3 - LCD", insnFnt, 255);
 	draw::text(16, 38 + 128, " 4 - SD", insnFnt, 255);
+	draw::text(16, 38 + 128 + 32, " 5 - USB", insnFnt, 255);
 
 	while (1) {
 		TestState ts = InProgress;
@@ -88,6 +92,10 @@ drawMenu:
 							state = SD;
 							sd_test.start();
 						}
+						else if (periph::ui::pressed(periph::ui::button::N5)) {
+							state = USB;
+							usb_test.start();
+						}
 					}
 				}
 				break;
@@ -102,6 +110,9 @@ drawMenu:
 				break;
 			case SD:
 				ts = sd_test.loop();
+				break;
+			case USB:
+				ts = usb_test.loop();
 				break;
 		}
 
