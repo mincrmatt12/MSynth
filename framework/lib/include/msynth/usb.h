@@ -148,6 +148,9 @@ namespace usb {
 		void reset() {
 			if (index != npos) {
 				// This extreme expression will call the correct destructor using short circuit evaluation.
+				//
+				// Although we could probably avoid this with virtual destructors, there's no need for them with the static case
+				// so I use this instead.
 				((index == pack_index<SupportedDevices, SupportedDevices...> && (delete reinterpret_cast<SupportedDevices *>(held), true)) || ...);
 			}
 			index = npos;
@@ -160,11 +163,36 @@ namespace usb {
 		void * held = nullptr;
 	};
 
+	// Type of pipe IDs
+	typedef int16_t pipe_t;
+
+	// Various pipe constants
+	namespace pipe {
+		// The requested configurtion is invalid
+		inline const pipe_t InvalidConfig = -1;
+		// There are too many active pipes right now
+		inline const pipe_t Busy = -2;
+
+		enum EndpointType : uint8_t {
+			EndpointTypeControl = 0,
+			EndpointTypeIso = 1,
+			EndpointTypeBulk = 2,
+			EndpointTypeInterrupt = 3
+		};
+
+		enum EndpointDirection : uint8_t {
+			EndpointDirectionOut = 0,
+			EndpointDirectionIn = 1
+		};
+	}
+
 	// HostBase is a low-level type that implements most of the logic in Host. It is effectively the template-invariant
 	// components of Host, such as low-level OTG_HS management and IRQ handling.
 	//
 	// An application is free to use this type if it desires, although automated enumeration and other nice things are not
-	// handled by it.
+	// handled by it. 
+	//
+	// In particular, HostBase is the interface that device classes use. This separates the low-level pipe allocation from the user.
 	struct HostBase {
 		// Non-copyable type
 		HostBase(const HostBase& other) = delete;
@@ -184,7 +212,7 @@ namespace usb {
 		void disable();
 
 		// PCDET
-		inline bool inserted() {
+		inline bool inserted() const {
 			return USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PCSTS;
 		}
 
@@ -201,6 +229,11 @@ namespace usb {
 		// INTERRUPTS
 		void overcurrent_irq();
 		void usb_global_irq(); 
+
+		// PIPE MANAGEMENT
+		
+		pipe_t create_pipe(
+
 	private:
 		// Various state flags:
 		// These are kept in an app-controlled variable because the peripheral docs are unclear.
@@ -278,6 +311,8 @@ namespace usb {
 		using HostBase::overcurrent_irq;
 		using HostBase::usb_global_irq;
 	private:
+
+		// The connected device's state.
 		StateHolder device;
 	};
 
