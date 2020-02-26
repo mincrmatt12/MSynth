@@ -190,6 +190,9 @@ namespace usb {
 			// Turn on port power
 			LL_GPIO_SetOutputPin(GPIOE, LL_GPIO_PIN_2); // dwrrrrrrrrrn
 			USB_OTG_HS_HPRT0 |= USB_OTG_HPRT_PPWR;
+
+			// Debounce
+			util::delay(200);
 		}
 		// Kill port power. This hard disconnects the device, and init_periph will need to be called again.
 		//
