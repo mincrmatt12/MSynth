@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <usb.h>
 
 // This file contains various device types.
@@ -195,6 +196,17 @@ void usb::HostBase::usb_global_irq() {
 	}
 }
 
+// PIPE STATE INFO
+//
+// pipe_xfer_buffers is the main location for info about ptrs:
+// 	if 0 - unallocated
+// 	if 0x 0000 1Fxx - state xx
+// 	else in progress to buffer at 0x xxxx xxxx
+//
+// STATE ON HOST:
+// 	allocated -> enabled -> transferring -> finished -|-> deallocated
+// 	      \___________________________________________/
+
 usb::pipe_t usb::HostBase::allocate_pipe() {
 	for (pipe_t i = 0; i < 8; ++i) {
 		if (pipe_xfer_buffers[i] == 0) {
@@ -202,7 +214,9 @@ usb::pipe_t usb::HostBase::allocate_pipe() {
 			pipe_xfer_buffers[i] = (void *)(0x1F00 | (int)transaction_status::Inactive);
 			pipe_callbacks[i].target = nullptr;
 			// disable all interrupts
-			USB_OTG_HS_HC(i)->HCINT = 0xff;
+			USB_OTG_HS_HC(i)->HCINT = 0xff; // Kill off interrupts, an enable HAINT
+			USB_OTG_HS_HOST->HAINT |= (1 << i); // Stop interrupt
+			USB_OTG_HS_HOST->HAINTMSK |= (1 << i); // Enable interrupt channel
 
 			return i;
 		}
@@ -217,15 +231,20 @@ usb::transaction_status usb::HostBase::check_xfer_state(pipe_t i) {
 	else return (transaction_status)((unsigned int)pipe_xfer_buffers[i] & 0xFF);
 }
 
-usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, void * buffer, const pipe::Callback &cb) {
+usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, void * buffer, const pipe::Callback &cb, bool is_setup) {
+	if (check_xfer_state(idx) == transaction_status::Busy) {
+		return transaction_status::Busy;
+	}
 	pipe_callbacks[idx] = cb;
-	return submit_xfer(idx, length, buffer);
+	return submit_xfer(idx, length, buffer, is_setup);
 }
 
 void usb::HostBase::destroy_pipe(pipe_t idx) {
 	// Check if the channel is active ATM
 	
 	if (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_CHENA) {
+		// Set an interrupt MSK
+		USB_OTG_HS_HC(idx)->HCINTMSK |= USB_OTG_HCINTMSK_CHHM;
 		// Set the channel as disabled
 		USB_OTG_HS_HC(idx)->HCCHAR |= USB_OTG_HCCHAR_CHDIS;
 		// Don't immediately say the channel is ded, but mark the channel as "shutting down"
@@ -234,10 +253,12 @@ void usb::HostBase::destroy_pipe(pipe_t idx) {
 	else {
 		// The channel is inactive, end the channel immediately
 		pipe_xfer_buffers[idx] = 0;
+		// Disable interrupts on this channel
+		USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
 	}
 }
 
-void usb::HostBase::configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint_num, uint16_t max_pkt_size, pipe::EndpointDirection ed, pipe::EndpointType et) {
+void usb::HostBase::configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint_num, uint16_t max_pkt_size, pipe::EndpointDirection ed, pipe::EndpointType et, bool data_toggle) {
 	// Setup the HCCHAR
 	USB_OTG_HS_HC(idx)->HCCHAR = (
 		((address << USB_OTG_HCCHAR_DAD_Pos) & USB_OTG_HCCHAR_DAD) |
@@ -248,4 +269,120 @@ void usb::HostBase::configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint
 	);
 	
 	// TODO: setup the LSDEV
+	
+	// Set the data toggle on this ENDPOINT.
+	// To get the data toggle later, the application can use get_pipe_data_toggle().
+	// This should be maintained across endpoint+direction changes.
+	
+	if (data_toggle) data_toggles |= (1 << idx);
+	else 			 data_toggles &= ~(1 << idx);
+}
+
+bool usb::HostBase::get_pipe_data_toggle(pipe_t idx) {
+	return data_toggles & (1 << idx);
+}
+
+usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, void * buffer, bool is_setup) {
+	if (check_xfer_state(idx) == transaction_status::Busy) return transaction_status::Busy;
+
+	// Come up with the value for PID
+	
+	uint8_t dpid = 0;
+	bool is_periodic = false;
+
+	if (is_setup) {
+		// Set dpid to 0b11 - MDATA/SETUP
+		dpid = 0b11;
+	}
+	else {
+		// Check which type of transfer we are using
+		switch (((pipe::EndpointType)(USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPTYP) >> USB_OTG_HCCHAR_EPTYP_Pos)) {
+			case pipe::EndpointTypeControl:
+				// If setup stage, we won't get here
+				//
+				// Otherwise, we are in DATA or STATUS phase, and both start with DATA1
+				if (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPDIR) {
+					// IN
+					dpid = 0b10; // DATA1
+					break;
+				}
+				else {
+					// OUT
+					// STATUS OUT sets toggle to 1
+					if (length == 0) {
+						data_toggles |= (1 << idx);
+						dpid = 0b10;
+					}
+					else {
+						dpid = (data_toggles & (1 << idx)) ? 0b10 : 0; // DATA1, DATA 0 based on toggle
+					}
+					break;
+				}
+			case pipe::EndpointTypeIso:
+				is_periodic = true;
+				// Start with DATA0
+				dpid = 0b00; // DATA0
+				break;
+			case pipe::EndpointTypeInterrupt:
+				is_periodic = true;
+			case pipe::EndpointTypeBulk:
+				// Check the data toggle
+				dpid = (data_toggles & (1 << idx)) ? 0b10 : 0;
+				break;
+		}
+	}
+
+	// Compute the number of packets
+	
+	uint16_t mps = (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_MPSIZ) >> USB_OTG_HCCHAR_MPSIZ_Pos;
+	uint16_t pkts = 0;
+	if (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPDIR && length % mps != 0) {
+		length += mps - (length % mps);
+		pkts = length / mps;
+	}
+	else if (length % mps != 0) {
+		pkts = (length / mps) + 1;
+	}
+	else pkts = length / mps;
+
+	// Setup the transfer
+	
+	this->pipe_xfer_buffers[idx] = buffer;
+	USB_OTG_HS_HC(idx)->HCTSIZ = (dpid << USB_OTG_HCTSIZ_DPID_Pos) |
+		((pkts << USB_OTG_HCTSIZ_PKTCNT_Pos) & USB_OTG_HCTSIZ_PKTCNT) |
+		((length << USB_OTG_HCTSIZ_XFRSIZ_Pos) & USB_OTG_HCTSIZ_XFRSIZ);
+	
+	// Setup interrupts
+	
+	USB_OTG_HS_HOST->HAINT |= (1 << idx);
+	USB_OTG_HS_HC(idx)->HCINTMSK = 0xff; // enable all interrupts
+
+	// Begin transferring
+	
+	USB_OTG_HS_HC(idx)->HCCHAR |= USB_OTG_HCCHAR_CHENA; // BLAST
+
+	// Fill up TX fifo if possible.
+	
+	if (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPDIR) {
+		// IN return now
+		return transaction_status::InProgress;
+	}
+
+	// Otherwise, begin filling up
+	uint16_t next_packet_size = mps / 4;
+	if (length < mps) next_packet_size = (length + 3) / 4;
+
+	while (is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & 0xFFFF) : (USB_OTG_HS->HNPTXSTS & 0xFFF) >= next_packet_size) {
+		// Load next_packet_size into the DFIFO
+		for (int i = 0; i < next_packet_size; ++i) {
+			length -= 4;
+			USB_OTG_HS_DFIFO(idx) = *((uint32_t *)this->pipe_xfer_buffers[idx]);
+			this->pipe_xfer_buffers[idx] = (uint32_t *)(this->pipe_xfer_buffers) + 1;
+		}
+
+		next_packet_size = mps / 4;
+		if (length < mps) next_packet_size = (length + 3) / 4;
+	}
+
+	return transaction_status::InProgress;
 }

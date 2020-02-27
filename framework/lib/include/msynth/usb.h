@@ -283,24 +283,28 @@ namespace usb {
 		// Each transfer is compromised of a series of same-typed packets.
 		pipe_t allocate_pipe();
 		// Set the device address, endpoint number, max packet size (larger transfers are put into separate packet transactions), endpoint direction (IN/OUT) and type (bulk,control,etc.)
-		void configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint_num, uint16_t max_pkt_size, pipe::EndpointDirection direction, pipe::EndpointType type);
+		// Data toggle is 1 for DATA1 and 0 for DATA0.
+		void configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint_num, uint16_t max_pkt_size, pipe::EndpointDirection direction, pipe::EndpointType type, bool data_toggle);
 		// De-allocate pipe. The currently in progress transfer is aborted.
 		void destroy_pipe(pipe_t idx);
+		// Get the current data toggle for a pipe. This should be kept the same for a given endpoint (num + In/Out)
+		bool get_pipe_data_toggle(pipe_t idx);
 
 		// TRANSACTIONS
 		
 		// Begin a transfer, respecting the maximum packet size, over the indicated pipe. Upon completion, the status can be read using the check_xfer_state function.
 		//
 		// For IN endpoints, the length is the maximum size for receive. The total amount of received data can be read with the check_received_amount function.
+		// If is_setup is true, the packet will be sent with a SETUP token. The length should be <= 8 bytes in this case.
 		//
 		// No constraints are placed on the location of buffer (i.e. no DMA is used, so it can be placed in CCMRAM)
-		transaction_status submit_xfer(pipe_t idx, uint16_t length, void * buffer);
+		transaction_status submit_xfer(pipe_t idx, uint16_t length, void * buffer, bool is_setup=false);
 
 		// Begin a transfer, respecting the maximum packet size, over the indicated pipe. Upon completion, the callback provided will be called.
 		//
 		// The state can also be read with the check_xfer_state function.
 		// No constraints are placed on the location of buffer.
-		transaction_status submit_xfer(pipe_t idx, uint16_t length, void * buffer, const pipe::Callback& cb);
+		transaction_status submit_xfer(pipe_t idx, uint16_t length, void * buffer, const pipe::Callback& cb, bool is_setup=false);
 
 		// Check the state of a transfer on a pipe.
 		transaction_status check_xfer_state(pipe_t idx);
@@ -316,6 +320,9 @@ namespace usb {
 		// Set to 0 to indicate nothing present, and to a value of transaction_status + 0x1F00 to indicate a status.
 		void * pipe_xfer_buffers[8] = {0};
 		uint16_t pipe_xfer_rx_amounts[8] = {0};
+
+		// Data toggles
+		uint8_t data_toggles = 0;
 		
 		// Various state flags:
 		// These are kept in an app-controlled variable because the peripheral docs are unclear.
