@@ -201,6 +201,8 @@ usb::pipe_t usb::HostBase::allocate_pipe() {
 			// allocate this pipe
 			pipe_xfer_buffers[i] = (void *)(0x1F00 | (int)transaction_status::Inactive);
 			pipe_callbacks[i].target = nullptr;
+			// disable all interrupts
+			USB_OTG_HS_HC(i)->HCINT = 0xff;
 
 			return i;
 		}
