@@ -195,3 +195,55 @@ void usb::HostBase::usb_global_irq() {
 	}
 }
 
+usb::pipe_t usb::HostBase::allocate_pipe() {
+	for (pipe_t i = 0; i < 8; ++i) {
+		if (pipe_xfer_buffers[i] == 0) {
+			// allocate this pipe
+			pipe_xfer_buffers[i] = (void *)(0x1F00 | (int)transaction_status::Inactive);
+			pipe_callbacks[i].target = nullptr;
+
+			return i;
+		}
+	}
+
+	return pipe::Busy;
+}
+
+usb::transaction_status usb::HostBase::check_xfer_state(pipe_t i) {
+	if (pipe_xfer_buffers[i] == 0) return transaction_status::NotAllocated;
+	if ((unsigned int)pipe_xfer_buffers[i] & ~(0x1F00U)) return transaction_status::Busy;
+	else return (transaction_status)((unsigned int)pipe_xfer_buffers[i] & 0xFF);
+}
+
+usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, void * buffer, const pipe::Callback &cb) {
+	pipe_callbacks[idx] = cb;
+	return submit_xfer(idx, length, buffer);
+}
+
+void usb::HostBase::destroy_pipe(pipe_t idx) {
+	// Check if the channel is active ATM
+	
+	if (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_CHENA) {
+		// Set the channel as disabled
+		USB_OTG_HS_HC(idx)->HCCHAR |= USB_OTG_HCCHAR_CHDIS;
+		// Don't immediately say the channel is ded, but mark the channel as "shutting down"
+		pipe_xfer_buffers[idx] = (void *)(0x1F00 | (int)transaction_status::ShuttingDown);
+	}
+	else {
+		// The channel is inactive, end the channel immediately
+		pipe_xfer_buffers[idx] = 0;
+	}
+}
+
+void usb::HostBase::configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint_num, uint16_t max_pkt_size, pipe::EndpointDirection ed, pipe::EndpointType et) {
+	// Setup the HCCHAR
+	USB_OTG_HS_HC(idx)->HCCHAR = (
+		((address << USB_OTG_HCCHAR_DAD_Pos) & USB_OTG_HCCHAR_DAD) |
+		((endpoint_num << USB_OTG_HCCHAR_EPNUM_Pos) & USB_OTG_HCCHAR_EPNUM) |
+		((max_pkt_size << USB_OTG_HCCHAR_MPSIZ_Pos) & USB_OTG_HCCHAR_MPSIZ) |
+		(((unsigned)ed << USB_OTG_HCCHAR_EPDIR_Pos) & USB_OTG_HCCHAR_EPDIR) |
+		(((unsigned)et << USB_OTG_HCCHAR_EPTYP_Pos) & USB_OTG_HCCHAR_EPTYP)
+	);
+	
+	// TODO: setup the LSDEV
+}
