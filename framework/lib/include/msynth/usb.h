@@ -58,9 +58,7 @@ namespace usb {
 		Nak, // The transfer completed with a NAK state (the data may not have been sent / received)
 		Stall, // The transfer completed with a STALL state
 		Nyet, // The transfer (somehow) completed with a NYET state (???)
-		XferError, // The transfer failed either due to a bus error (SOF missing, bad CRC) or because of an internal problem with the driver
-		Babble, // There was a babble error. babb bable bablbeble words have lost meaning
-		FrameOverrun, // The transmission or reception overran a frame
+		XferError, // The transfer failed either due to a bus error (SOF missing, bad CRC), babble or frame overrun or because of an internal problem with the driver
 		DataToggleError, // An invalid state of the data toggle was detected (the driver should have handled this)
 		Inactive, // There is no transfer ongoing on this pipe (only returned from get_xfer_State)
 		NotAllocated, // This pipe is not allocated.
@@ -204,7 +202,7 @@ namespace usb {
 		};
 
 		struct Callback {
-			friend struct HostBase;
+			friend HostBase;
 			typedef void (*PtrType)(void * argument, pipe_t source, transaction_status event);
 
 			// Data API
@@ -282,9 +280,14 @@ namespace usb {
 		// The unitary operation in a pipe is a transaction. This differs slightly from the canonical definition, and the RM calls them transfers.
 		// Each transfer is compromised of a series of same-typed packets.
 		pipe_t allocate_pipe();
-		// Set the device address, endpoint number, max packet size (larger transfers are put into separate packet transactions), endpoint direction (IN/OUT) and type (bulk,control,etc.)
-		// Data toggle is 1 for DATA1 and 0 for DATA0.
+		// Set the device address, endpoint number, max packet size (larger transfers are put into separate packet transactions), endpoint direction (IN/OUT) and type (bulk,control,etc.), and 
+		// data toggle. Data toggle is 1 for DATA1 and 0 for DATA0.
 		void configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint_num, uint16_t max_pkt_size, pipe::EndpointDirection direction, pipe::EndpointType type, bool data_toggle);
+		// Set the device address, endpoint number, max packet size (larger transfers are put into separate packet transactions), endpoint direction (IN/OUT) and type (bulk,control,etc.), but
+		// keep the data toggle the same.
+		inline void configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint_num, uint16_t max_pkt_size, pipe::EndpointDirection direction, pipe::EndpointType type) {
+			configure_pipe(idx, address, endpoint_num, max_pkt_size, direction, type, data_toggles & (1 << idx));
+		}
 		// De-allocate pipe. The currently in progress transfer is aborted.
 		void destroy_pipe(pipe_t idx);
 		// Get the current data toggle for a pipe. This should be kept the same for a given endpoint (num + In/Out)
@@ -319,6 +322,8 @@ namespace usb {
 		// Channel buffers
 		// Set to 0 to indicate nothing present, and to a value of transaction_status + 0x1F00 to indicate a status.
 		void * pipe_xfer_buffers[8] = {0};
+
+		// Channel tx amounts. These are updated as data is read from/placed into the FIFOs
 		uint16_t pipe_xfer_rx_amounts[8] = {0};
 
 		// Data toggles
