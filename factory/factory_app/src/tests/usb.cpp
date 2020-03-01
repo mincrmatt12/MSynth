@@ -47,6 +47,7 @@ TestState UsbTest::loop() {
 			break;
 		case DetectingPeripheral:
 			{
+				util::delay(200);
 				init_error = usb_host.init_periph();
 				if (init_error == usb::init_status::Ok) {
 					state = Ready;

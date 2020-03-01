@@ -6,23 +6,20 @@
 
 void usb::HostBase::enable() {
 	// Enable the HPRT interrupts
-	USB_OTG_HS->GINTMSK |= USB_OTG_GINTMSK_PRTIM;
+	USB_OTG_HS->GINTMSK |= USB_OTG_GINTMSK_PRTIM | USB_OTG_GINTMSK_SOFM;
 	// Set FS
 	USB_OTG_HS_HOST->HCFG = 0b101; // Set 48mhz FS (will adjust)
 
 	// Turn on port power
 	LL_GPIO_SetOutputPin(GPIOE, LL_GPIO_PIN_2); // dwrrrrrrrrrn
 	USB_OTG_HS_HPRT0 |= USB_OTG_HPRT_PPWR;
-
-	// Debounce
-	util::delay(200);
 }
 
 void usb::HostBase::disable() {
 	// Check the state of the USB
 	if (inserted()) {
 		// Device was inserted, so let's disable the port
-		USB_OTG_HS_HPRT0 &= ~(USB_OTG_HPRT_PENA);
+		USB_OTG_HS_HPRT0 |= USB_OTG_HPRT_PENA;
 
 		util::delay(5);
 
@@ -60,10 +57,11 @@ usb::init_status usb::HostBase::init_host_after_connect() {
 	if (!inserted()) return init_status::NotInserted;
 
 change_speed:
+	puts("chspeD");
 	// Start by resetting the port
 	USB_OTG_HS_HPRT0 |= USB_OTG_HPRT_PRST;
 	// Wait at least twice the value in the datasheet, you never know what bullcrap is in them these days
-	util::delay(15);
+	util::delay(10);
 	USB_OTG_HS_HPRT0 &= ~(USB_OTG_HPRT_PRST);
 	// Wait for a PENCHNG interrupt
 	while (!got_penchng) {;}
@@ -79,7 +77,7 @@ change_speed:
 			goto change_speed;
 		}
 
-		USB_OTG_HS_HOST->HFIR = 47999U;
+		//USB_OTG_HS_HOST->HFIR = 47999U;
 	}
 	else if ((USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PSPD) == USB_OTG_HPRT_PSPD_1) {
 		// Low speed
@@ -96,6 +94,7 @@ change_speed:
 		// not supported
 		return init_status::NotSupported;
 	}
+	printf("pena: %d\n", USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PENA);
 
 	// Set the FIFO sizes
 	//
@@ -262,7 +261,7 @@ void usb::HostBase::destroy_pipe(pipe_t idx) {
 		// Set an interrupt MSK
 		USB_OTG_HS_HC(idx)->HCINTMSK |= USB_OTG_HCINTMSK_CHHM;
 		// Set the channel as disabled
-		USB_OTG_HS_HC(idx)->HCCHAR |= USB_OTG_HCCHAR_CHDIS;
+		USB_OTG_HS_HC(idx)->HCCHAR |= USB_OTG_HCCHAR_CHDIS | USB_OTG_HCCHAR_CHENA; // see RM
 		// Don't immediately say the channel is ded, but mark the channel as "shutting down"
 		pipe_xfer_buffers[idx] = STATE_TO_BUF(transaction_status::ShuttingDown);
 	}
@@ -395,35 +394,32 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 	uint16_t next_packet_size = mps / 4;
 	if (length < mps) next_packet_size = (length + 3) / 4;
 
-	this->pipe_xfer_rx_amounts[idx] = length; // remaining length. This overwrites the previous value but whatever
-	auto tmp = USB_OTG_HS_HC(idx)->HCCHAR;
-	tmp &= ~USB_OTG_HCCHAR_CHDIS;
-	USB_OTG_HS_HC(idx)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
-
-	printf("hcchar chdis %d\n", USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_CHDIS);
-
 	while ((is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & 0xFFFF) : (USB_OTG_HS->HNPTXSTS & 0xFFFF)) >= next_packet_size && length != 0 &&
 		   (is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & USB_OTG_HPTXSTS_PTXQSAV) : (USB_OTG_HS->HNPTXSTS & USB_OTG_GNPTXSTS_NPTQXSAV))) {
+		auto tmp = USB_OTG_HS_HC(idx)->HCCHAR;
+		tmp &= ~USB_OTG_HCCHAR_CHDIS;
+		USB_OTG_HS_HC(idx)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
 		// Load next_packet_size into the DFIFO
 		for (int i = 0; i < next_packet_size; ++i) {
 			USB_OTG_HS_DFIFO(idx) = *((uint32_t *)this->pipe_xfer_buffers[idx]);
-			puts("loaded word");
 			this->pipe_xfer_buffers[idx] = (uint32_t *)(this->pipe_xfer_buffers[idx]) + 1;
 			if (length < 4) {
 				length = 0;
 				break;
 			}
 			length -= 4;
-			printf("hcchar chdis %d\n", USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_NPTXFE);
-			printf("hcchar itx %d\n", USB_OTG_HS_HC(idx)->HCINT);
 		}
 
 		next_packet_size = mps / 4;
 		if (length < mps) next_packet_size = (length + 3) / 4;
-		puts("loaded pkt");
 
+		// Update the toggles
 		data_toggles ^= (1 << idx);
+
+		// TODO: add NPTXFE/PTXFE handling.
 	}
+
+	this->pipe_xfer_rx_amounts[idx] = length; // remaining length. This overwrites the previous value but whatever
 
 	return transaction_status::InProgress;
 }
@@ -436,21 +432,29 @@ void usb::HostBase::usb_global_irq() {
 	
 	// Was it a port interrupt?
 	if (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_HPRTINT) {
-		puts("hprt");
+		auto hprt = USB_OTG_HS_HPRT0;
+		hprt &= ~USB_OTG_HPRT_PENA;
+		//puts("hprt");
 		// Host port interrupt
 		if (USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PENCHNG) {
 			// Port enable status changed
 			got_penchng = 1;
-			USB_OTG_HS_HPRT0 |= USB_OTG_HPRT_PENCHNG;
+			//puts("penchng");
+			//printf("pena: %d\n", USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PENA);
+			hprt |= USB_OTG_HPRT_PENCHNG;
 		}
 		else if (USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PCDET) {
 			// Port connection detected, for now just a no-op.
-			USB_OTG_HS_HPRT0 |= USB_OTG_HPRT_PCDET; // clear
+			hprt |= USB_OTG_HPRT_PCDET; // clear
+			puts("pcdet");
 		}
 		else if (USB_OTG_HS_HPRT0 & USB_OTG_HPRT_POCCHNG) {
 			// Port overcurrent detected, already handled
-			USB_OTG_HS_HPRT0 |= USB_OTG_HPRT_POCCHNG;
+			hprt |= USB_OTG_HPRT_POCCHNG;
+			puts("pocchng");
 		}
+
+		USB_OTG_HS_HPRT0 = hprt;
 	}
 	// Was it a channel interrupt?
 	if (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_HCINT) {
@@ -583,6 +587,7 @@ void usb::HostBase::usb_global_irq() {
 				// Where should it be sent?
 
 				pipe_t place = tmp & USB_OTG_GRXSTSP_EPNUM; // no shift at end of reg
+				if (place > 8) goto end;
 				uint16_t count = (tmp & USB_OTG_GRXSTSP_BCNT) >> USB_OTG_GRXSTSP_BCNT_Pos;
 
 				this->pipe_xfer_rx_amounts[place] += count;
@@ -608,11 +613,13 @@ void usb::HostBase::usb_global_irq() {
 				}
 			}
 
+end:
 			// Unmask
 			USB_OTG_HS->GINTSTS |= (USB_OTG_GINTSTS_RXFLVL);
-			USB_OTG_HS->GINTMSK |= USB_OTG_GINTMSK_RXFLVLM;
 		}
 	}
+
+	if (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_SOF) USB_OTG_HS->GINTSTS |= USB_OTG_GINTSTS_SOF;
 }
 
 bool usb::MidiDevice::handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol) {
