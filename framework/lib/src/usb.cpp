@@ -41,6 +41,7 @@ void usb::HostBase::disable() {
 		if (USB_OTG_HS_HC(i)->HCCHAR & USB_OTG_HCCHAR_CHENA) USB_OTG_HS_HC(i)->HCCHAR |= USB_OTG_HCCHAR_CHDIS;
 		USB_OTG_HS_HC(i)->HCINT = 0xff;
 		USB_OTG_HS_HC(i)->HCINTMSK = 0;
+		this->pipe_xfer_buffers[i] = 0;
 	}
 
 	// Deplete all FIFOs
@@ -292,6 +293,9 @@ void usb::HostBase::configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint
 	
 	if (data_toggle) data_toggles |= (1 << idx);
 	else 			 data_toggles &= ~(1 << idx);
+
+	// Set the state back to inactive
+	this->pipe_xfer_buffers[idx] = STATE_TO_BUF(transaction_status::Inactive);
 }
 
 bool usb::HostBase::get_pipe_data_toggle(pipe_t idx) {
@@ -509,6 +513,8 @@ void usb::HostBase::usb_global_irq() {
 				// The transfer has completed "without errors" -- the state is definitely set rn.
 				// Call the transfer callback
 				this->pipe_callbacks[i](i, check_xfer_state(i));
+				// Destroy the pipe callback
+				new (&this->pipe_callbacks[i]) pipe::Callback{};
 
 				// The channel is now disabled correctly, so clear this flag.
 				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_XFRC;
@@ -534,6 +540,8 @@ void usb::HostBase::usb_global_irq() {
 					//
 					// Still, the state should be located 
 					this->pipe_callbacks[i](i, check_xfer_state(i));
+					// Destroy the pipe callback
+					new (&this->pipe_callbacks[i]) pipe::Callback{};
 					break;
 				case transaction_status::NotAllocated:
 				case transaction_status::Inactive:
