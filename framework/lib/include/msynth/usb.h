@@ -452,7 +452,7 @@ namespace usb {
 			// Get the maximum EP0 size
 
 			// Set the pipe up for a SETUP (out-style packet to control)
-			configure_pipe(ep0_pipe, 0 /* setup address */, 0 /* DCP */, 8 /* minimum maximum packet size */, pipe::EndpointTypeControl, pipe::EndpointDirectionOut, false /* data toggle is always 0 */);
+			configure_pipe(ep0_pipe, 0 /* setup address */, 0 /* DCP */, 8 /* minimum maximum packet size */, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, false /* data toggle is always 0 */);
 			// Create the SETUP payload
 			raw::SetupData request;
 			request.bmRequestType = 0b1'00'00000; //device to host, standard, device
@@ -473,7 +473,7 @@ namespace usb {
 			
 			// It was! Now we can read the device descriptor
 			alignas(4) uint8_t partial_device_descriptor[8];
-			configure_pipe(ep0_pipe, 0, 0, 8, pipe::EndpointTypeControl, pipe::EndpointDirectionIn, true); // data toggle is 1
+			configure_pipe(ep0_pipe, 0, 0, 8, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, true); // data toggle is 1
 			submit_xfer(ep0_pipe, 8, &partial_device_descriptor);
 			// Wait for it to finish
 			while (check_xfer_state(ep0_pipe) == transaction_status::Busy) {;}
@@ -488,10 +488,10 @@ namespace usb {
 			uint8_t ep0_mps = partial_device_descriptor[7];
 
 			// Send a status phase.
-			configure_pipe(ep0_pipe, 0, 0, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionOut, true); // data toggle is still 1, yo
+			configure_pipe(ep0_pipe, 0, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true); // data toggle is still 1, yo
 			// Send a 0-byte message. Note that sending `nullptr` to submit_xfer is invalid due to how states are handled, so we send the special
 			// value 0xfeedfeed instead (it will never be deref'd)
-			submit_xfer(ep0_pipe, 0, 0xfeedfeed);
+			submit_xfer(ep0_pipe, 0, (void*)0xfeedfeed);
 			// Wait for it to finish
 			while (check_xfer_state(ep0_pipe) == transaction_status::Busy) {;}
 			// Was this transfer ok?
@@ -504,7 +504,7 @@ namespace usb {
 
 			// TODO: do we need a reset here?
 			
-			configure_pipe(ep0_pipe, 0 /* setup address */, 0 /* DCP */, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionOut, false /* data toggle is always 0 */);
+			configure_pipe(ep0_pipe, 0 /* setup address */, 0 /* DCP */, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, false /* data toggle is always 0 */);
 			// Set address to 0x10 (some random number) to make the USB happy
 			request.bmRequestType = 0;
 			request.bRequest = 5; // SET_ADDRESS
@@ -523,8 +523,8 @@ namespace usb {
 			// No data phase, so send an IN with size == 0
 			//
 			// TODO: should this go to addr == 0x10?
-			configure_pipe(ep0_pipe, 0 /* setup address */, 0 /* DCP */, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionIn, true);
-			submit_xfer(ep0_pipe, 0, 0xdeefdeef);
+			configure_pipe(ep0_pipe, 0 /* setup address */, 0 /* DCP */, ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, true);
+			submit_xfer(ep0_pipe, 0, (void*)0xdeefdeef);
 			// Wait for it to finish
 			while (check_xfer_state(ep0_pipe) == transaction_status::Busy) {;}
 			// Was this transfer ok?
@@ -543,7 +543,7 @@ namespace usb {
 			request.wValue = (1 /* DEVICE */ << 8);
 			request.wIndex = 0;
 			request.wLength = 18; // get the entire thing
-			configure_pipe(ep0_pipe, 0x10 /* new address */, 0, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionOut, true);
+			configure_pipe(ep0_pipe, 0x10 /* new address */, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
 			// Send this request
 			submit_xfer(ep0_pipe, sizeof(request), &request, true); // is_setup=True
 			// Wait for it to finish
@@ -555,7 +555,7 @@ namespace usb {
 			}
 
 			// Read the entire thing in the data phase
-			configure_pipe(ep0_pipe, 0x10 /* new address */, 0, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionIn, false);
+			configure_pipe(ep0_pipe, 0x10 /* new address */, 0, ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, false);
 			raw::DeviceDescriptor dd;
 			submit_xfer(ep0_pipe, 0x12, &dd);
 			// Wait for it to finish
@@ -567,8 +567,8 @@ namespace usb {
 			}
 			
 			// Send a STATUS OUT
-			configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionOut, true); // data toggle is still 1, yo
-			submit_xfer(ep0_pipe, 0, 0xfeedfeed);
+			configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true); // data toggle is still 1, yo
+			submit_xfer(ep0_pipe, 0, (void*)0xfeedfeed);
 			// Wait for it to finish
 			while (check_xfer_state(ep0_pipe) == transaction_status::Busy) {;}
 			// Was this transfer ok?
@@ -586,7 +586,7 @@ namespace usb {
 				request.wValue = (2 /* CONFIGURATION */ << 8);
 				request.wIndex = 0;
 				request.wLength = 9; // get the entire thing
-				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionOut, true);
+				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
 				submit_xfer(ep0_pipe, sizeof(request), &request, true); // is_setup=True
 				while (check_xfer_state(ep0_pipe) == transaction_status::Busy) {;}
 				if (check_xfer_state(ep0_pipe) != transaction_status::Ack) {
@@ -594,7 +594,7 @@ namespace usb {
 				}
 
 				// Read the entire thing in the data phase
-				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionIn, false);
+				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, false);
 				raw::ConfigurationDescriptor cd;
 				submit_xfer(ep0_pipe, 0x9, &cd);
 				while (check_xfer_state(ep0_pipe) == transaction_status::Busy) {;}
@@ -603,8 +603,8 @@ namespace usb {
 				}
 				
 				// Send a STATUS OUT
-				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionOut, true); // data toggle is still 1, yo
-				submit_xfer(ep0_pipe, 0, 0xfeedfeed);
+				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true); // data toggle is still 1, yo
+				submit_xfer(ep0_pipe, 0, (void*)0xfeedfeed);
 				while (check_xfer_state(ep0_pipe) == transaction_status::Busy) {;}
 				if (check_xfer_state(ep0_pipe) != transaction_status::Ack) {
 					return init_status::TxnErrorDuringEnumeration;
@@ -617,7 +617,7 @@ namespace usb {
 				request.wValue = (2 /* CONFIGURATION */ << 8);
 				request.wIndex = 0;
 				request.wLength = cd.wTotalLength; // get the entire thing
-				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionOut, true);
+				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
 				submit_xfer(ep0_pipe, sizeof(request), &request, true); // is_setup=True
 				while (check_xfer_state(ep0_pipe) == transaction_status::Busy) {;}
 				if (check_xfer_state(ep0_pipe) != transaction_status::Ack) {
@@ -625,7 +625,7 @@ namespace usb {
 				}
 
 				// Read the entire thing in the data phase
-				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionIn, false);
+				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, false);
 				submit_xfer(ep0_pipe, cd.wTotalLength, &configuration_descriptor_set);
 				while (check_xfer_state(ep0_pipe) == transaction_status::Busy) {;}
 				if (check_xfer_state(ep0_pipe) != transaction_status::Ack) {
@@ -633,8 +633,8 @@ namespace usb {
 				}
 				
 				// Send a STATUS OUT
-				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointTypeControl, pipe::EndpointDirectionOut, true); // data toggle is still 1, yo
-				submit_xfer(ep0_pipe, 0, 0xfeedfeed);
+				configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true); // data toggle is still 1, yo
+				submit_xfer(ep0_pipe, 0, (void*)0xfeedfeed);
 				while (check_xfer_state(ep0_pipe) == transaction_status::Busy) {;}
 				if (check_xfer_state(ep0_pipe) != transaction_status::Ack) {
 					return init_status::TxnErrorDuringEnumeration;
@@ -738,8 +738,17 @@ namespace usb {
 	};
 
 	struct MidiDevice {
+		// Does this driver deal with this device/interface combo?
+		static bool handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol);
+		
+		void init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, HostBase *hb);
+	private:
+		uint8_t ep_in, ep_out;
 	};
 
 	struct HID {
+		static bool handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol);
+
+		void init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, HostBase *hb);
 	};
 }
