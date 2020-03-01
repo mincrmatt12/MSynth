@@ -567,7 +567,7 @@ namespace usb {
 			// Begin deferring to the different types of SupportedDevices.
 
 			// If you get a compile error here you probably didn't define a static handles in your device class
-			(
+			if (!(
 			 (SupportedDevices::handles(dd.bDeviceClass, dd.bDeviceSubClass, dd.bDeviceProtocol) && 
 			  (
 				device.template assign<SupportedDevices>(), 
@@ -575,9 +575,13 @@ namespace usb {
 				true
 			  )
 			 ) || ...
-			);
+			)) {
+				return init_status::NotSupported;
+			}
 
-			return init_status::NotSupported;
+			// Otherwise, we have succesfully initialized it
+
+			return init_status::Ok;
 		}
 
 		using HostBase::init;
