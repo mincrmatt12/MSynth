@@ -61,7 +61,7 @@ change_speed:
 	// Start by resetting the port
 	USB_OTG_HS_HPRT0 |= USB_OTG_HPRT_PRST;
 	// Wait at least twice the value in the datasheet, you never know what bullcrap is in them these days
-	util::delay(10);
+	util::delay(15);
 	USB_OTG_HS_HPRT0 &= ~(USB_OTG_HPRT_PRST);
 	// Wait for a PENCHNG interrupt
 	while (!got_penchng) {;}
@@ -357,17 +357,23 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 	
 	uint16_t mps = (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_MPSIZ) >> USB_OTG_HCCHAR_MPSIZ_Pos;
 	uint16_t pkts = 0;
-	if (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPDIR && length % mps != 0) {
-		length += mps - (length % mps);
-		pkts = length / mps;
+	if (length) {
+		if (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPDIR && length % mps != 0) {
+			length += mps - (length % mps);
+			pkts = length / mps;
+		}
+		else if (length % mps != 0) {
+			pkts = (length / mps) + 1;
+		}
+		else pkts = length / mps;
 	}
-	else if (length % mps != 0) {
-		pkts = (length / mps) + 1;
+	else {
+		pkts = 1;
 	}
-	else pkts = length / mps;
 
 	// Setup the transfer
 	
+	printf("dpid %d, pktcnt %d, xfrsiz %d\n", dpid, pkts, length);
 	this->pipe_xfer_buffers[idx] = buffer;
 	USB_OTG_HS_HC(idx)->HCTSIZ = (dpid << USB_OTG_HCTSIZ_DPID_Pos) |
 		((pkts << USB_OTG_HCTSIZ_PKTCNT_Pos) & USB_OTG_HCTSIZ_PKTCNT) |
@@ -377,12 +383,15 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 	
 	USB_OTG_HS_HOST->HAINT |= (1 << idx);
 	USB_OTG_HS_HOST->HAINTMSK |= (1 << idx); // Enable interrupt channel
+	USB_OTG_HS_HC(idx)->HCINT = 0b11111111011; // clear all interrupts
 	USB_OTG_HS_HC(idx)->HCINTMSK = 0b11111111011; // enable all interrupts
 
 	if (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPDIR) {
 		// Begin transferring
 		
+		puts("rxstart");
 		this->pipe_xfer_rx_amounts[idx] = 0;
+
 		auto tmp = USB_OTG_HS_HC(idx)->HCCHAR;
 		tmp &= ~USB_OTG_HCCHAR_CHDIS;
 		USB_OTG_HS_HC(idx)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
@@ -394,29 +403,37 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 	uint16_t next_packet_size = mps / 4;
 	if (length < mps) next_packet_size = (length + 3) / 4;
 
-	while ((is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & 0xFFFF) : (USB_OTG_HS->HNPTXSTS & 0xFFFF)) >= next_packet_size && length != 0 &&
-		   (is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & USB_OTG_HPTXSTS_PTXQSAV) : (USB_OTG_HS->HNPTXSTS & USB_OTG_GNPTXSTS_NPTQXSAV))) {
+	if (length) {
+		while ((is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & 0xFFFF) : (USB_OTG_HS->HNPTXSTS & 0xFFFF)) >= next_packet_size && length != 0 &&
+			   (is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & USB_OTG_HPTXSTS_PTXQSAV) : (USB_OTG_HS->HNPTXSTS & USB_OTG_GNPTXSTS_NPTQXSAV))) {
+			auto tmp = USB_OTG_HS_HC(idx)->HCCHAR;
+			tmp &= ~USB_OTG_HCCHAR_CHDIS;
+			USB_OTG_HS_HC(idx)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
+			// Load next_packet_size into the DFIFO
+			for (int i = 0; i < next_packet_size; ++i) {
+				printf("loading 0x%0x\n", *((uint32_t *)this->pipe_xfer_buffers[idx]));
+				USB_OTG_HS_DFIFO(idx) = *((uint32_t *)this->pipe_xfer_buffers[idx]);
+				this->pipe_xfer_buffers[idx] = (uint32_t *)(this->pipe_xfer_buffers[idx]) + 1;
+				if (length < 4) {
+					length = 0;
+					break;
+				}
+				length -= 4;
+			}
+
+			next_packet_size = mps / 4;
+			if (length < mps) next_packet_size = (length + 3) / 4;
+
+			// Update the toggles
+			data_toggles ^= (1 << idx);
+
+			// TODO: add NPTXFE/PTXFE handling.
+		}
+	}
+	else {
 		auto tmp = USB_OTG_HS_HC(idx)->HCCHAR;
 		tmp &= ~USB_OTG_HCCHAR_CHDIS;
 		USB_OTG_HS_HC(idx)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
-		// Load next_packet_size into the DFIFO
-		for (int i = 0; i < next_packet_size; ++i) {
-			USB_OTG_HS_DFIFO(idx) = *((uint32_t *)this->pipe_xfer_buffers[idx]);
-			this->pipe_xfer_buffers[idx] = (uint32_t *)(this->pipe_xfer_buffers[idx]) + 1;
-			if (length < 4) {
-				length = 0;
-				break;
-			}
-			length -= 4;
-		}
-
-		next_packet_size = mps / 4;
-		if (length < mps) next_packet_size = (length + 3) / 4;
-
-		// Update the toggles
-		data_toggles ^= (1 << idx);
-
-		// TODO: add NPTXFE/PTXFE handling.
 	}
 
 	this->pipe_xfer_rx_amounts[idx] = length; // remaining length. This overwrites the previous value but whatever
@@ -456,12 +473,64 @@ void usb::HostBase::usb_global_irq() {
 
 		USB_OTG_HS_HPRT0 = hprt;
 	}
+
+	// Was it a RX ~~FLEGHM~~ FLEVL interrupt?
+	while (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_RXFLVL) {
+		puts("rxflvl");
+		// Disable this interrupt temporarily
+		USB_OTG_HS->GINTMSK &= ~USB_OTG_GINTMSK_RXFLVLM;
+		// Check what has happened
+		uint32_t tmp = USB_OTG_HS->GRXSTSP; // Pops the top thing off of the RXfifo / RXqueue
+
+		// Have we got a fresh off the proverbial oven IN pkt?
+		if ((tmp & USB_OTG_GRXSTSP_PKTSTS) == (2 << USB_OTG_GRXSTSP_PKTSTS_Pos)) {
+			// Where should it be sent?
+
+			pipe_t place = tmp & USB_OTG_GRXSTSP_EPNUM; // no shift at end of reg
+			if (place > 8) goto end;
+			printf("got rx pkt %d\n", place);
+			uint16_t count = (tmp & USB_OTG_GRXSTSP_BCNT) >> USB_OTG_GRXSTSP_BCNT_Pos;
+
+			this->pipe_xfer_rx_amounts[place] += count;
+
+			// Read that many words (+ some extra padding) into the target buffer.
+
+			if (count % 4 != 0) count += 4 - count % 4;
+			for (int i = 0; i < (count / 4); ++i) {
+				printf("rxfifo @ %p\n", this->pipe_xfer_buffers[place]);
+				*((uint32_t *)this->pipe_xfer_buffers[place]) = USB_OTG_HS_DFIFO(place);
+				printf("rxfifo = %u\n", *((uint32_t *)this->pipe_xfer_buffers[place]));
+				this->pipe_xfer_buffers[place] = ((uint32_t *)(this->pipe_xfer_buffers[place])) + 1;
+			}
+			puts("rxend");
+			
+			// Update dtoggle
+			this->data_toggles ^= (1 << place);
+
+			// Check if we should read more packets
+
+			if (USB_OTG_HS_HC(place)->HCTSIZ & USB_OTG_HCTSIZ_PKTCNT) {
+				puts("rxcnt");
+				// Keep it going
+				//
+				// TODO: do we need to disable disable?
+				USB_OTG_HS_HC(place)->HCCHAR |= USB_OTG_HCCHAR_CHENA;
+			}
+		}
+
+end:
+		// Unmask
+		USB_OTG_HS->GINTSTS |= (USB_OTG_GINTSTS_RXFLVL);
+	}
+	
+
 	// Was it a channel interrupt?
 	if (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_HCINT) {
 		// Scroll through all channels to check which one it was
 		for (pipe_t i = 0; i < 12; ++i) {
 			if (!(USB_OTG_HS_HOST->HAINT & (1 << i))) continue;
 			if (i > 8) { /* ignore interrupt */ USB_OTG_HS_HC(i)->HCINT = 0xff; }
+			//printf("hcint %d\n", i);
 
 			// Otherwise, we check the interrupt type.
 			// The system will set a XRFC/state/error flag before it sets a CHH interrupt.
@@ -469,30 +538,28 @@ void usb::HostBase::usb_global_irq() {
 			// we get one, which has the side effect of disabling that channel from the 
 			// perspective of the rest of the handler.
 
-			if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_ACK) {
-				// The transfer has completed with an ACK status code.
-				// Mark it as such in the buffer...
-				this->pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::Ack);
-				// Clear the ACK flag.
-				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_ACK;
-			}
-			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_NAK) {
+			if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_NAK) {
+				puts("nak");
 				// The transfer has completed with an NAK status code.
 				// Mark it as such in the buffer...
 				
 				this->pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::Nak);
 				// Clear the flag.
 				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_NAK;
+				USB_OTG_HS_HC(i)->HCCHAR |= USB_OTG_HCCHAR_CHDIS;
 			}
 			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_STALL) {
+				puts("stall");
 				// The transfer has completed with an STALL status code.
 				// Mark it as such in the buffer...
 				
 				this->pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::Stall);
 				// Clear the flag.
 				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_STALL;
+				USB_OTG_HS_HC(i)->HCCHAR |= USB_OTG_HCCHAR_CHDIS;
 			}
 			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_NYET) {
+				puts("nyet");
 				// The transfer has completed with an NYET status code.
 				// Mark it as such in the buffer...
 				
@@ -525,6 +592,11 @@ void usb::HostBase::usb_global_irq() {
 			// is in shutting-down state, we can finish that process here
 
 			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_XFRC) {
+				puts("xrfc");
+				if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_ACK) {
+					pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::Ack);
+					USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_ACK;
+				}
 				// The transfer has completed "without errors" -- the state is definitely set rn.
 				// Call the transfer callback
 				this->pipe_callbacks[i](i, check_xfer_state(i));
@@ -538,6 +610,7 @@ void usb::HostBase::usb_global_irq() {
 				USB_OTG_HS_HOST->HAINTMSK &= ~(1 << i);
 			}
 			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_CHH) {
+				puts("chh");
 				// Check what state we were in beforehand
 				switch (check_xfer_state(i)) {
 				case transaction_status::ShuttingDown:
@@ -560,65 +633,35 @@ void usb::HostBase::usb_global_irq() {
 					break;
 				case transaction_status::NotAllocated:
 				case transaction_status::Inactive:
+				case transaction_status::Ack:
 					// Just do nothing
 					break;
 				}
 
 				// The channel is now disabled correctly, so clear this flag.
 				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_CHH;
+				USB_OTG_HS_HC(i)->HCCHAR &= ~USB_OTG_HCCHAR_CHDIS;
 
 				// We also no longer need to hear interrupts from this channel, so clear its msk
 				USB_OTG_HS_HOST->HAINTMSK &= ~(1 << i);
 			}
+			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_ACK) {
+				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_ACK;
+
+				// Check if more data is available?
+				if (USB_OTG_HS_HC(i)->HCCHAR & USB_OTG_HCCHAR_EPDIR) {
+					auto tmp = USB_OTG_HS_HC(i)->HCCHAR;
+					tmp &= ~USB_OTG_HCCHAR_CHDIS;
+					USB_OTG_HS_HC(i)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
+				}
+			}
 			else {
+				printf("?? %d\n", USB_OTG_HS_HC(i)->HCINT);
 				// Who knows, so let's clear all interrupts just to be safe
 				USB_OTG_HS_HC(i)->HCINT = 0xff;
 			}
 		}
-		// Was it a RX ~~FLEGHM~~ FLEVL interrupt?
-		if (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_RXFLVL) {
-			// Disable this interrupt temporarily
-			USB_OTG_HS->GINTMSK &= ~USB_OTG_GINTMSK_RXFLVLM;
-			// Check what has happened
-			uint32_t tmp = USB_OTG_HS->GRXSTSP; // Pops the top thing off of the RXfifo / RXqueue
-
-			// Have we got a fresh off the proverbial oven IN pkt?
-			if ((tmp & USB_OTG_GRXSTSP_PKTSTS) == (2 << USB_OTG_GRXSTSP_PKTSTS_Pos)) {
-				// Where should it be sent?
-
-				pipe_t place = tmp & USB_OTG_GRXSTSP_EPNUM; // no shift at end of reg
-				if (place > 8) goto end;
-				uint16_t count = (tmp & USB_OTG_GRXSTSP_BCNT) >> USB_OTG_GRXSTSP_BCNT_Pos;
-
-				this->pipe_xfer_rx_amounts[place] += count;
-
-				// Read that many words (+ some extra padding) into the target buffer.
-
-				if (count % 4 != 0) count += 4 - count % 4;
-				for (int i = 0; i < (count / 4); ++i) {
-					*((uint32_t *)this->pipe_xfer_buffers[place]) = USB_OTG_HS_DFIFO(place);
-					this->pipe_xfer_buffers[place] = (uint32_t *)(this->pipe_xfer_buffers[place]) + 1;
-				}
-				
-				// Update dtoggle
-				this->data_toggles ^= (1 << place);
-
-				// Check if we should read more packets
-
-				if (USB_OTG_HS_HC(place)->HCTSIZ & USB_OTG_HCTSIZ_PKTCNT) {
-					// Keep it going
-					//
-					// TODO: do we need to disable disable?
-					USB_OTG_HS_HC(place)->HCCHAR |= USB_OTG_HCCHAR_CHENA;
-				}
-			}
-
-end:
-			// Unmask
-			USB_OTG_HS->GINTSTS |= (USB_OTG_GINTSTS_RXFLVL);
-		}
 	}
-
 	if (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_SOF) USB_OTG_HS->GINTSTS |= USB_OTG_GINTSTS_SOF;
 }
 
