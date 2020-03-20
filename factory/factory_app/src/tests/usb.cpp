@@ -62,6 +62,9 @@ TestState UsbTest::loop() {
 						case usb::init_status::NotSupported:
 							draw::text(cursor, 200, "NotSupported", uiFnt, 0xfc);
 							break;
+						case usb::init_status::TxnErrorDuringEnumeration:
+							draw::text(cursor, 200, "TxnErrorDuringEnumeration", uiFnt, 0xfc);
+							break;
 						default:
 							draw::text(cursor, 200, "?? invalid retcode", uiFnt, 0xfc);
 							break;
