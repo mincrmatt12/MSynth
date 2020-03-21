@@ -446,6 +446,16 @@ namespace usb {
 			uint8_t bInterfaceProtocol;
 			uint8_t iInterface;
 		};
+		
+		struct alignas(4) EndpointDescriptor {
+			DescriptorHead head;
+			uint8_t bEndpointAddress;
+			uint8_t bmAttributes;
+			uint16_t wMaxPacketSize;
+			uint8_t bInterval;
+			uint8_t bRefresh;
+			uint8_t bSynchAddress;
+		};
 
 		static_assert(sizeof(SetupData) == 8, "invalid packing rules on SetupData");
 		static_assert(sizeof(DeviceDescriptor) == 18 + 2 /* align */, "invalid packing rules on DeviceDescriptor");
