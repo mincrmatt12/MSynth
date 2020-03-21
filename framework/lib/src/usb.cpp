@@ -57,7 +57,7 @@ usb::init_status usb::HostBase::init_host_after_connect() {
 	if (!inserted()) return init_status::NotInserted;
 
 change_speed:
-	puts("chspeD");
+	//puts("chspeD");
 	// Start by resetting the port
 	USB_OTG_HS_HPRT0 |= USB_OTG_HPRT_PRST;
 	// Wait at least twice the value in the datasheet, you never know what bullcrap is in them these days
@@ -94,7 +94,7 @@ change_speed:
 		// not supported
 		return init_status::NotSupported;
 	}
-	printf("pena: %d\n", USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PENA);
+	//printf("pena: %d\n", USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PENA);
 
 	// Set the FIFO sizes
 	//
@@ -190,7 +190,7 @@ void usb::HostBase::init() {
 	USB_OTG_HS->GINTMSK |= USB_OTG_GINTMSK_MMISM;
 
 	// Enable USB IRQ
-	NVIC_SetPriority(OTG_HS_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 2, 0));
+	NVIC_SetPriority(OTG_HS_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 8, 0)); // USB has low priority on the msynth since it can call delay.
 	NVIC_EnableIRQ(OTG_HS_IRQn);
 
 	// Enable interrupts
@@ -202,14 +202,9 @@ void usb::HostBase::init() {
 
 // PIPE STATE INFO
 //
-// pipe_xfer_buffers is the main location for info about ptrs:
-// 	if 0 - unallocated
-// 	if 0x 0000 1Fxx - state xx
-// 	else in progress to buffer at 0x xxxx xxxx
-//
-// STATE ON HOST:
-// 	allocated -> enabled -> transferring -> finished -|-> deallocated
-// 	      \___________________________________________/
+// pipe_xfer_buffers contains buffer pointers
+// pipe_statuses contains the state of each channel
+// pipe_repeat_counts contains the retry counter for each transfer
 //
 // USAGE OF HOST REGISTERS
 // 
@@ -222,14 +217,18 @@ void usb::HostBase::init() {
 
 usb::pipe_t usb::HostBase::allocate_pipe() {
 	for (pipe_t i = 0; i < 8; ++i) {
-		if (pipe_xfer_buffers[i] == 0) {
+		if (pipe_statuses[i] == transaction_status::NotAllocated) {
 			// allocate this pipe
-			pipe_xfer_buffers[i] = (void *)(0x1F00 | (int)transaction_status::Inactive);
+			pipe_statuses[i] = transaction_status::Inactive;
 			pipe_callbacks[i].target = nullptr;
+			pipe_repeat_counts[i] = 0;
+			set_retry_behavior(i, retry_behavior::Instantaneous);
 			// disable all interrupts
 			USB_OTG_HS_HC(i)->HCINT = 0xff; // Kill off interrupts, an enable HAINT
 			USB_OTG_HS_HOST->HAINT |= (1 << i); // Stop interrupt
 			USB_OTG_HS_HOST->HAINTMSK |= (1 << i); // Enable interrupt channel
+
+			//printf("alloc %d\n", i);
 
 			return i;
 		}
@@ -238,10 +237,54 @@ usb::pipe_t usb::HostBase::allocate_pipe() {
 	return pipe::Busy;
 }
 
+// HELPER ROUTINES
+inline void enable_channel(usb::pipe_t idx) {
+	auto tmp = USB_OTG_HS_HC(idx)->HCCHAR;
+	tmp &= ~USB_OTG_HCCHAR_CHDIS;
+	USB_OTG_HS_HC(idx)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
+}
+
+inline void disable_channel(usb::pipe_t idx) {
+	USB_OTG_HS_HC(idx)->HCCHAR |= USB_OTG_HCCHAR_CHENA | USB_OTG_HCCHAR_CHDIS; // BLAST
+}
+
+inline uint32_t available_fifo_space(usb::pipe_t idx) {
+	bool is_periodic = ((USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPTYP) >> USB_OTG_HCCHAR_EPTYP_Pos) & 0x1;
+	return is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & 0xFFFF) : (USB_OTG_HS->HNPTXSTS & 0xFFFF);
+}
+
+inline uint32_t available_request_space(usb::pipe_t idx) {
+	bool is_periodic = ((USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPTYP) >> USB_OTG_HCCHAR_EPTYP_Pos) & 0x1;
+	return is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & USB_OTG_HPTXSTS_PTXQSAV) : (USB_OTG_HS->HNPTXSTS & USB_OTG_GNPTXSTS_NPTQXSAV);
+}
+
+void usb::HostBase::blast_next_packet(usb::pipe_t idx) {
+	auto tmp = USB_OTG_HS_HC(idx)->HCCHAR;
+	int mps = (tmp & USB_OTG_HCCHAR_MPSIZ) >> USB_OTG_HCCHAR_MPSIZ_Pos;
+	tmp = USB_OTG_HS_HC(idx)->HCTSIZ;
+	int length = (tmp & USB_OTG_HCTSIZ_XFRSIZ) >> USB_OTG_HCTSIZ_XFRSIZ_Pos;
+	//printf("l %d; mps %d\n", length, mps);
+	enable_channel(idx);
+	if (!length) return;
+	{
+		int pktremain = (tmp & USB_OTG_HCTSIZ_PKTCNT) >> USB_OTG_HCTSIZ_PKTCNT_Pos;
+		int next_packet_word_count = (pktremain != 1) ? mps / 4 : (length % mps) / 4;
+		if (pktremain == 1 && next_packet_word_count == 0 && !(pipe_zlp_enable & (1 << idx))) next_packet_word_count = mps / 4;
+		//printf("pktremain %d\n", pktremain);
+		//printf("zlp %d\n", pipe_zlp_enable);
+		for (int word = 0; word < next_packet_word_count; ++word) {
+			//puts("load");
+			USB_OTG_HS_DFIFO(idx) = *((uint32_t *)this->pipe_xfer_buffers[idx]);
+			this->pipe_xfer_buffers[idx] = (void *)((uint32_t)(this->pipe_xfer_buffers[idx]) + 4);
+		}
+		this->pipe_xfer_rx_amounts[idx] = next_packet_word_count;
+		data_toggles ^= (1 << idx);
+	}
+}
+
 usb::transaction_status usb::HostBase::check_xfer_state(pipe_t i) {
-	if (pipe_xfer_buffers[i] == 0) return transaction_status::NotAllocated;
-	if ((unsigned int)pipe_xfer_buffers[i] & ~(0x1FFFU)) return transaction_status::Busy;
-	else return (transaction_status)((unsigned int)pipe_xfer_buffers[i] & 0xFF);
+	if (USB_OTG_HS_HC(i)->HCCHAR & USB_OTG_HCCHAR_CHENA) return transaction_status::InProgress;
+	return pipe_statuses[i];
 }
 
 usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, void * buffer, const pipe::Callback &cb, bool is_setup) {
@@ -252,8 +295,6 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 	return submit_xfer(idx, length, buffer, is_setup);
 }
 
-#define STATE_TO_BUF(v) (void *)(0x1F00 | (int)(v))
-
 void usb::HostBase::destroy_pipe(pipe_t idx) {
 	// Check if the channel is active ATM
 	
@@ -263,11 +304,11 @@ void usb::HostBase::destroy_pipe(pipe_t idx) {
 		// Set the channel as disabled
 		USB_OTG_HS_HC(idx)->HCCHAR |= USB_OTG_HCCHAR_CHDIS | USB_OTG_HCCHAR_CHENA; // see RM
 		// Don't immediately say the channel is ded, but mark the channel as "shutting down"
-		pipe_xfer_buffers[idx] = STATE_TO_BUF(transaction_status::ShuttingDown);
+		pipe_statuses[idx] = transaction_status::ShuttingDown;
 	}
 	else {
 		// The channel is inactive, end the channel immediately
-		pipe_xfer_buffers[idx] = 0;
+		pipe_statuses[idx] = transaction_status::NotAllocated;
 		// Disable interrupts on this channel
 		USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
 	}
@@ -294,7 +335,7 @@ void usb::HostBase::configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint
 	else 			 data_toggles &= ~(1 << idx);
 
 	// Set the state back to inactive
-	this->pipe_xfer_buffers[idx] = STATE_TO_BUF(transaction_status::Inactive);
+	this->pipe_statuses[idx] = transaction_status::Inactive;
 }
 
 bool usb::HostBase::get_pipe_data_toggle(pipe_t idx) {
@@ -302,9 +343,9 @@ bool usb::HostBase::get_pipe_data_toggle(pipe_t idx) {
 }
 
 usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, void * buffer, bool is_setup) {
-	puts("submit xfer");
+	//puts("submit xfer");
 	if (check_xfer_state(idx) == transaction_status::Busy) return transaction_status::Busy;
-	puts("sub");
+	//puts("sub");
 
 	// Come up with the value for PID
 	
@@ -314,6 +355,7 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 	if (is_setup) {
 		// Set dpid to 0b11 - MDATA/SETUP
 		dpid = 0b11;
+		pipe_zlp_enable &= ~(1 << idx);
 	}
 	else {
 		// Check which type of transfer we are using
@@ -336,10 +378,12 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 					}
 					else {
 						dpid = (data_toggles & (1 << idx)) ? 0b10 : 0; // DATA1, DATA 0 based on toggle
+						pipe_zlp_enable &= ~(1 << idx);
 					}
 					break;
 				}
 			case pipe::EndpointTypeIso:
+				pipe_zlp_enable &= ~(1 << idx);
 				is_periodic = true;
 				// Start with DATA0
 				dpid = 0b00; // DATA0
@@ -349,6 +393,7 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 			case pipe::EndpointTypeBulk:
 				// Check the data toggle
 				dpid = (data_toggles & (1 << idx)) ? 0b10 : 0;
+				pipe_zlp_enable |= (1 << idx);
 				break;
 		}
 	}
@@ -368,81 +413,289 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 		else pkts = length / mps;
 	}
 	else {
+		pipe_zlp_enable |= (1 << idx);
 		pkts = 1;
 	}
 
 	// Setup the transfer
-	
-	printf("dpid %d, pktcnt %d, xfrsiz %d\n", dpid, pkts, length);
+	//printf("dpid %d, pktcnt %d, xfrsiz %d\n", dpid, pkts, length);
 	this->pipe_xfer_buffers[idx] = buffer;
 	USB_OTG_HS_HC(idx)->HCTSIZ = (dpid << USB_OTG_HCTSIZ_DPID_Pos) |
 		((pkts << USB_OTG_HCTSIZ_PKTCNT_Pos) & USB_OTG_HCTSIZ_PKTCNT) |
 		((length << USB_OTG_HCTSIZ_XFRSIZ_Pos) & USB_OTG_HCTSIZ_XFRSIZ);
 	
 	// Setup interrupts
-	
 	USB_OTG_HS_HOST->HAINT |= (1 << idx);
 	USB_OTG_HS_HOST->HAINTMSK |= (1 << idx); // Enable interrupt channel
 	USB_OTG_HS_HC(idx)->HCINT = 0b11111111011; // clear all interrupts
 	USB_OTG_HS_HC(idx)->HCINTMSK = 0b11111111011; // enable all interrupts
 
+	// Set state flags
+	this->pipe_statuses[idx] = transaction_status::InProgress;
+
+	//printf("%d %d\n", idx, USB_OTG_HS_HC(idx)->HCCHAR);
+
 	if (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPDIR) {
 		// Begin transferring
 		
-		puts("rxstart");
+		//puts("rxstart");
 		this->pipe_xfer_rx_amounts[idx] = 0;
 
-		auto tmp = USB_OTG_HS_HC(idx)->HCCHAR;
-		tmp &= ~USB_OTG_HCCHAR_CHDIS;
-		USB_OTG_HS_HC(idx)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
+		enable_channel(idx);
 		// IN return now
 		return transaction_status::InProgress;
 	}
 
-	// Otherwise, begin filling up the DFIFO
-	uint16_t next_packet_size = mps / 4;
-	if (length < mps) next_packet_size = (length + 3) / 4;
+	// Otherwise, try to load the first packet.
+	// Is this a ZLP?
+	
+	if (!length) {
+		// Simply enable the channel.
+		this->pipe_xfer_rx_amounts[idx] = 0; 
 
-	if (length) {
-		while ((is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & 0xFFFF) : (USB_OTG_HS->HNPTXSTS & 0xFFFF)) >= next_packet_size && length != 0 &&
-			   (is_periodic ? (USB_OTG_HS_HOST->HPTXSTS & USB_OTG_HPTXSTS_PTXQSAV) : (USB_OTG_HS->HNPTXSTS & USB_OTG_GNPTXSTS_NPTQXSAV))) {
-			auto tmp = USB_OTG_HS_HC(idx)->HCCHAR;
-			tmp &= ~USB_OTG_HCCHAR_CHDIS;
-			USB_OTG_HS_HC(idx)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
-			// Load next_packet_size into the DFIFO
-			for (int i = 0; i < next_packet_size; ++i) {
-				printf("loading 0x%0x\n", *((uint32_t *)this->pipe_xfer_buffers[idx]));
-				USB_OTG_HS_DFIFO(idx) = *((uint32_t *)this->pipe_xfer_buffers[idx]);
-				this->pipe_xfer_buffers[idx] = (uint32_t *)(this->pipe_xfer_buffers[idx]) + 1;
-				if (length < 4) {
-					length = 0;
-					break;
-				}
-				length -= 4;
-			}
-
-			next_packet_size = mps / 4;
-			if (length < mps) next_packet_size = (length + 3) / 4;
-
-			// Update the toggles
-			data_toggles ^= (1 << idx);
-
-			// TODO: add NPTXFE/PTXFE handling.
-		}
+		enable_channel(idx);
 	}
 	else {
-		auto tmp = USB_OTG_HS_HC(idx)->HCCHAR;
-		tmp &= ~USB_OTG_HCCHAR_CHDIS;
-		USB_OTG_HS_HC(idx)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
+		// Load packets while able, and defer to the space available interrupts
+		if (available_fifo_space(idx) && available_request_space(idx)) {
+			//puts("blast");
+			blast_next_packet(idx);
+		}
+		else {
+			//puts("oops");
+			// Enable the TXFIFO interrupt
+			USB_OTG_HS->GINTMSK |= is_periodic ? USB_OTG_GINTMSK_PTXFEM : USB_OTG_GINTMSK_NPTXFEM;
+		}
 	}
-
-	this->pipe_xfer_rx_amounts[idx] = length; // remaining length. This overwrites the previous value but whatever
 
 	return transaction_status::InProgress;
 }
 
-// USB GLOBAL INTERRUPT
+// USB HELPER INTERRUPT SUBROUTINES
 //
+// This is structured similarly (but not exactly) like the official one
+void usb::HostBase::channel_irq_in(usb::pipe_t idx) {
+	// Interrupts:
+	//
+	// XRFC will occur when all transfers are completed succesfully. ACK will occur at the same time, because ACK is the only ok status code
+	// CHH  will occur when a channel is halted.
+	//
+	// NAK will occur when there is a NAK. When we NAK we have to retry the transmission up to 3 times. In this case we
+	// don't disable the channel because then the NAK would show through to the end-user and it's unnecesarry. What we do instead is re-enable the channel to send another
+	// token packet.
+
+	if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_XFRC) {
+		//puts("xrfc");
+		// The transfer has completed OK. Due to the order of interrupt handling, this will occur after the relevant data is read off of the fifo.
+		//
+		// We clear the interrupt, and then finish the transfer normally
+
+		USB_OTG_HS_HC(idx)->HCINT |= (USB_OTG_HCINT_XFRC | USB_OTG_HCINT_ACK); // Also clear ACK since it will get set at the same time.
+		this->pipe_statuses[idx] = transaction_status::Ack;
+
+		// Call the callback if set
+
+		this->pipe_callbacks[idx](idx, transaction_status::Ack);
+		// Destroy the pipe callback
+		new (&this->pipe_callbacks[idx]) pipe::Callback{};
+
+		// Ignore interrupts from this channel as well
+
+		USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
+		
+		// Apparently we're supposed to disable the channel here as well?
+		// I don't think so...
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_ACK) {
+		//puts("ack");
+		// A packet was succesfully received, but there is more to receive. This case is already handled during the rxflvl interrupt.
+		// We simply clear the flag and continue on.
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_ACK;
+		USB_OTG_HS_HC(idx)->HCINTMSK = 0b11111111011; // enable all interrupts
+		// Keep it going
+		enable_channel(idx); // Continue reading the next packet (sends a new IN token)
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_NAK) {
+		//puts("nak");
+		// Ack the interrupt first
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_NAK;
+		// The device is not ready to send data yet, but is open for more attempts. Check if we have exceeded the retry counter.
+		if (++this->pipe_repeat_counts[idx] < 3) {
+			//puts("nakr");
+			// We are allowed to send more requests, so send another token
+			if (pipe_nak_defer & (1 << idx)) {
+				pipe_nak_defer_waiting |= (1 << idx);
+			}
+			else {
+				if (pipe_nak_delay & (1 << idx)) util::delay(2);
+				enable_channel(idx);
+			}
+		}
+		else {
+			//puts("nakc");
+			// We are unable to send more requests, cancel and halt channel
+			this->pipe_statuses[idx] = transaction_status::Nak;
+			disable_channel(idx);
+		}
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_STALL) {
+		//puts("stall");
+		// Stall cancels immediately, so halt and set status
+		// Same behavior for the next few errors.
+		this->pipe_statuses[idx] = transaction_status::Stall;
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_STALL;
+		disable_channel(idx);
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_BBERR) { // babble balbbalb balbab bbab bib bab boop
+		this->pipe_statuses[idx] = transaction_status::XferError;
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_BBERR;
+		disable_channel(idx);
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_TXERR) { // txn error
+		this->pipe_statuses[idx] = transaction_status::XferError;
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_TXERR;
+		disable_channel(idx);
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_DTERR) { // data toggle erro
+		this->pipe_statuses[idx] = transaction_status::DataToggleError;
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_DTERR;
+		disable_channel(idx);
+	}
+
+	// Now check for CHH _after_ everything else (to ensure the state is set first.)
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_CHH) {
+		//puts("chh");
+		// Acknowledge the interrupt
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_CHH;
+		USB_OTG_HS_HC(idx)->HCCHAR &= ~USB_OTG_HCCHAR_CHDIS;
+
+		// What state were we in? Are we trying to deallocate this channel from earlier
+		if (this->pipe_statuses[idx] == transaction_status::ShuttingDown) {
+			// Finish shutting down the channel
+			pipe_statuses[idx] = transaction_status::NotAllocated;
+			// Disable interrupts on this channel
+			USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
+		}
+		else {
+			// If there (somehow) isn't a valid excuse for stopping, set one
+			if (this->pipe_statuses[idx] == transaction_status::InProgress) this->pipe_statuses[idx] = transaction_status::XferError;
+			this->pipe_callbacks[idx](idx, this->pipe_statuses[idx]);
+			// Destroy the pipe callback
+			new (&this->pipe_callbacks[idx]) pipe::Callback{};
+		}
+
+		USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
+	}
+}
+
+void usb::HostBase::channel_irq_out(usb::pipe_t idx) {
+	// Interrupts:
+	//
+	// XRFC will occur when all transfers are completed succesfully. ACK will occur at the same time, because ACK is the only ok status code
+	// ACK will occur on succesful transmission of a packet. If there are more (and there are since XRFC clears ack) we send out another packet.
+	//
+	// NAK will occur on failure to send a packet. We therefore either rewind the pointer and try again or defer to error
+	// Other errors are handled as they are in input packets.
+
+	if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_XFRC) {
+		// The transfer has completed OK. Due to the order of interrupt handling, this will occur after the relevant data is read off of the fifo.
+		//
+		// We clear the interrupt, and then finish the transfer normally
+
+		USB_OTG_HS_HC(idx)->HCINT |= (USB_OTG_HCINT_XFRC | USB_OTG_HCINT_ACK); // Also clear ACK since it will get set at the same time.
+		this->pipe_statuses[idx] = transaction_status::Ack;
+
+		// Call the callback if set
+
+		this->pipe_callbacks[idx](idx, transaction_status::Ack);
+		// Destroy the pipe callback
+		new (&this->pipe_callbacks[idx]) pipe::Callback{};
+
+		// Ignore interrupts from this channel as well
+
+		USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
+		
+		// Apparently we're supposed to disable the channel here as well?
+		// I don't think so...
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_ACK) {
+		// A packet was succesfully received, but there is more to send. Blast out another packet
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_ACK;
+		// Reset error count
+		this->pipe_repeat_counts[idx] = 0;
+		blast_next_packet(idx);
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_NAK) {
+		// Ack the interrupt first
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_NAK;
+		// The device is not ready to get data yet, but is open for more attempts. Check if we have exceeded the retry counter.
+		if (++this->pipe_repeat_counts[idx] < 3) {
+			// Send the same request as we just did. blast_next_packet stores the number of words it just sent in pipe_xfer_rx_amounts[idx].
+			// We rewind the buffer that many things and then re-run the function.
+			if (pipe_nak_defer & (1 << idx)) {
+				pipe_nak_defer_waiting |= (1 << idx);
+			}
+			else {
+				if (pipe_nak_delay & (1 << idx)) util::delay(2);
+				this->pipe_xfer_buffers[idx] = (void *)((uint32_t)(this->pipe_xfer_buffers[idx]) - this->pipe_xfer_rx_amounts[idx] * 4);
+				blast_next_packet(idx);
+			}
+		}
+		else {
+			// We are unable to send more requests, cancel and halt channel
+			this->pipe_statuses[idx] = transaction_status::Nak;
+			disable_channel(idx);
+		}
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_STALL) {
+		// Stall cancels immediately, so halt and set status
+		// Same behavior for the next few errors.
+		this->pipe_statuses[idx] = transaction_status::Stall;
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_STALL;
+		disable_channel(idx);
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_BBERR) { // babble balbbalb balbab bbab bib bab boop
+		this->pipe_statuses[idx] = transaction_status::XferError;
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_BBERR;
+		disable_channel(idx);
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_TXERR) { // txn error
+		this->pipe_statuses[idx] = transaction_status::XferError;
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_TXERR;
+		disable_channel(idx);
+	}
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_DTERR) { // data toggle erro
+		this->pipe_statuses[idx] = transaction_status::DataToggleError;
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_DTERR;
+		disable_channel(idx);
+	}
+
+	// Now check for CHH _after_ everything else (to ensure the state is set first.)
+	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_CHH) {
+		// Acknowledge the interrupt
+		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_CHH;
+		USB_OTG_HS_HC(idx)->HCCHAR &= ~USB_OTG_HCCHAR_CHDIS;
+
+		// What state were we in? Are we trying to deallocate this channel from earlier
+		if (this->pipe_statuses[idx] == transaction_status::ShuttingDown) {
+			// Finish shutting down the channel
+			pipe_statuses[idx] = transaction_status::NotAllocated;
+			// Disable interrupts on this channel
+			USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
+		}
+		else {
+			// If there (somehow) isn't a valid excuse for stopping, set one
+			if (this->pipe_statuses[idx] == transaction_status::InProgress) this->pipe_statuses[idx] = transaction_status::XferError;
+			this->pipe_callbacks[idx](idx, this->pipe_statuses[idx]);
+			// Destroy the pipe callback
+			new (&this->pipe_callbacks[idx]) pipe::Callback{};
+		}
+
+		USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
+	}
+}
+
+// USB GLOBAL INTERRUPT
 // This routine has a lot of responsibilities, such as managing port power status, and dealing with ongoing xfers.
 void usb::HostBase::usb_global_irq() {
 	// Check what triggered the interrupt
@@ -451,32 +704,49 @@ void usb::HostBase::usb_global_irq() {
 	if (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_HPRTINT) {
 		auto hprt = USB_OTG_HS_HPRT0;
 		hprt &= ~USB_OTG_HPRT_PENA;
-		//puts("hprt");
+		////puts("hprt");
 		// Host port interrupt
 		if (USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PENCHNG) {
 			// Port enable status changed
 			got_penchng = 1;
-			//puts("penchng");
-			//printf("pena: %d\n", USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PENA);
+			////puts("penchng");
+			////printf("pena: %d\n", USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PENA);
 			hprt |= USB_OTG_HPRT_PENCHNG;
 		}
 		else if (USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PCDET) {
 			// Port connection detected, for now just a no-op.
 			hprt |= USB_OTG_HPRT_PCDET; // clear
-			puts("pcdet");
+			//puts("pcdet");
 		}
 		else if (USB_OTG_HS_HPRT0 & USB_OTG_HPRT_POCCHNG) {
 			// Port overcurrent detected, already handled
 			hprt |= USB_OTG_HPRT_POCCHNG;
-			puts("pocchng");
+			//puts("pocchng");
 		}
 
 		USB_OTG_HS_HPRT0 = hprt;
 	}
 
+	if ((USB_OTG_HS->GINTSTS & USB_OTG_HS->GINTMSK) & (USB_OTG_GINTSTS_PTXFE | USB_OTG_GINTSTS_NPTXFE)) {
+		// Disable these interrupts
+		USB_OTG_HS->GINTMSK &= ~(USB_OTG_GINTSTS_PTXFE | USB_OTG_GINTSTS_NPTXFE);
+		//puts("txflvl");
+		// Check all busy pipes.
+		for (pipe_t idx = 0; idx < 8; ++idx) {
+			if (check_xfer_state(idx) == transaction_status::InProgress && !(USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPTYP) && !(USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_CHENA)) {
+				// This is an OUT transfer which is still in progress (not errored, otherwise it would read nak / etc.), and is not enabled.
+				//
+				// Either:
+				// 	- The transfer is done and we haven't realized it yet
+				//printf("todo out irq %d\n", idx);
+				// TODO TODO TODO
+			}
+		}
+	}
+
 	// Was it a RX ~~FLEGHM~~ FLEVL interrupt?
 	while (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_RXFLVL) {
-		puts("rxflvl");
+		//puts("rxflvl");
 		// Disable this interrupt temporarily
 		USB_OTG_HS->GINTMSK &= ~USB_OTG_GINTMSK_RXFLVLM;
 		// Check what has happened
@@ -488,7 +758,7 @@ void usb::HostBase::usb_global_irq() {
 
 			pipe_t place = tmp & USB_OTG_GRXSTSP_EPNUM; // no shift at end of reg
 			if (place > 8) goto end;
-			printf("got rx pkt %d\n", place);
+			//printf("got rx pkt %d\n", place);
 			uint16_t count = (tmp & USB_OTG_GRXSTSP_BCNT) >> USB_OTG_GRXSTSP_BCNT_Pos;
 
 			this->pipe_xfer_rx_amounts[place] += count;
@@ -497,25 +767,18 @@ void usb::HostBase::usb_global_irq() {
 
 			if (count % 4 != 0) count += 4 - count % 4;
 			for (int i = 0; i < (count / 4); ++i) {
-				printf("rxfifo @ %p\n", this->pipe_xfer_buffers[place]);
+				//printf("rxfifo @ %p\n", this->pipe_xfer_buffers[place]);
 				*((uint32_t *)this->pipe_xfer_buffers[place]) = USB_OTG_HS_DFIFO(place);
-				printf("rxfifo = %u\n", *((uint32_t *)this->pipe_xfer_buffers[place]));
+				//printf("rxfifo = %u\n", *((uint32_t *)this->pipe_xfer_buffers[place]));
 				this->pipe_xfer_buffers[place] = ((uint32_t *)(this->pipe_xfer_buffers[place])) + 1;
 			}
-			puts("rxend");
+			//puts("rxend");
 			
 			// Update dtoggle
 			this->data_toggles ^= (1 << place);
 
-			// Check if we should read more packets
-
-			if (USB_OTG_HS_HC(place)->HCTSIZ & USB_OTG_HCTSIZ_PKTCNT) {
-				puts("rxcnt");
-				// Keep it going
-				//
-				// TODO: do we need to disable disable?
-				USB_OTG_HS_HC(place)->HCCHAR |= USB_OTG_HCCHAR_CHENA;
-			}
+			// Reset error count
+			this->pipe_repeat_counts[place] = 0;
 		}
 
 end:
@@ -523,146 +786,39 @@ end:
 		USB_OTG_HS->GINTSTS |= (USB_OTG_GINTSTS_RXFLVL);
 	}
 	
-
 	// Was it a channel interrupt?
 	if (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_HCINT) {
 		// Scroll through all channels to check which one it was
 		for (pipe_t i = 0; i < 12; ++i) {
 			if (!(USB_OTG_HS_HOST->HAINT & (1 << i))) continue;
 			if (i > 8) { /* ignore interrupt */ USB_OTG_HS_HC(i)->HCINT = 0xff; }
-			//printf("hcint %d\n", i);
 
-			// Otherwise, we check the interrupt type.
-			// The system will set a XRFC/state/error flag before it sets a CHH interrupt.
-			// Or at least, that's how we treat it. We set the return code of the buffer when
-			// we get one, which has the side effect of disabling that channel from the 
-			// perspective of the rest of the handler.
+			// Is it an in/out
+			if (USB_OTG_HS_HC(i)->HCCHAR & USB_OTG_HCCHAR_EPDIR) channel_irq_in(i);
+			else 												 channel_irq_out(i);
+		}
+	}
 
-			if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_NAK) {
-				puts("nak");
-				// The transfer has completed with an NAK status code.
-				// Mark it as such in the buffer...
-				
-				this->pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::Nak);
-				// Clear the flag.
-				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_NAK;
-				USB_OTG_HS_HC(i)->HCCHAR |= USB_OTG_HCCHAR_CHDIS;
-			}
-			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_STALL) {
-				puts("stall");
-				// The transfer has completed with an STALL status code.
-				// Mark it as such in the buffer...
-				
-				this->pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::Stall);
-				// Clear the flag.
-				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_STALL;
-				USB_OTG_HS_HC(i)->HCCHAR |= USB_OTG_HCCHAR_CHDIS;
-			}
-			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_NYET) {
-				puts("nyet");
-				// The transfer has completed with an NYET status code.
-				// Mark it as such in the buffer...
-				
-				this->pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::Nyet);
-				// Clear the flag.
-				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_NYET;
-			}
-			// AHBERR will never occur
-			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_NYET) {
-				// The transfer has completed with an NYET status code.
-				// Mark it as such in the buffer...
-				
-				this->pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::Nyet);
-				// Clear the flag.
-				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_NYET;
-			}
-			else if (USB_OTG_HS_HC(i)->HCINT & (USB_OTG_HCINT_FRMOR | USB_OTG_HCINT_TXERR | USB_OTG_HCINT_BBERR)) {
-				// The transfer has encountered an error
-				this->pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::XferError);
-				// Clear all flags
-				USB_OTG_HS_HC(i)->HCINT |= (USB_OTG_HCINT_FRMOR | USB_OTG_HCINT_TXERR | USB_OTG_HCINT_BBERR);
-			}
-			
-			// Alright, now we can begin checking for XRFC / CHH
-			//
-			// In theory (based on the if/elif structure and LAWS OF PHYSICS) we should already have the target state
-			// ready.
-			//
-			// If not, we can provide a half decent idea of what happened otherwise. Additionally, if the channel
-			// is in shutting-down state, we can finish that process here
+	if (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_SOF) {
+		USB_OTG_HS->GINTSTS |= USB_OTG_GINTSTS_SOF;
 
-			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_XFRC) {
-				puts("xrfc");
-				if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_ACK) {
-					pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::Ack);
-					USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_ACK;
+		// Scan through all active channels
+		for (pipe_t idx = 0; idx < 8; ++idx) {
+			if (pipe_nak_defer_waiting & (1 << idx)) {
+				pipe_nak_defer_waiting &= ~(1 << idx);
+				// check what we have to do
+				if (USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPDIR) {
+					// IN, enable channel
+					enable_channel(idx);
 				}
-				// The transfer has completed "without errors" -- the state is definitely set rn.
-				// Call the transfer callback
-				this->pipe_callbacks[i](i, check_xfer_state(i));
-				// Destroy the pipe callback
-				new (&this->pipe_callbacks[i]) pipe::Callback{};
-
-				// The channel is now disabled correctly, so clear this flag.
-				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_XFRC;
-
-				// We also no longer need to hear interrupts from this channel, so clear its msk
-				USB_OTG_HS_HOST->HAINTMSK &= ~(1 << i);
-			}
-			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_CHH) {
-				puts("chh");
-				// Check what state we were in beforehand
-				switch (check_xfer_state(i)) {
-				case transaction_status::ShuttingDown:
-					// Finish shutting down the channel.
-					pipe_xfer_buffers[i] = 0;
-					// Disable interrupts on this channel
-					USB_OTG_HS_HOST->HAINTMSK &= ~(1 << i);
-					// Unassert disable enable
-					USB_OTG_HS_HC(i)->HCCHAR &= ~(USB_OTG_HCCHAR_CHDIS);
-					break;
-				case transaction_status::Busy:
-					this->pipe_xfer_buffers[i] = STATE_TO_BUF(transaction_status::XferError);
-				default:
-					// The trzansfe6r is in progress, but has failed.
-					//
-					// Still, the state should be located 
-					this->pipe_callbacks[i](i, check_xfer_state(i));
-					// Destroy the pipe callback
-					new (&this->pipe_callbacks[i]) pipe::Callback{};
-					break;
-				case transaction_status::NotAllocated:
-				case transaction_status::Inactive:
-				case transaction_status::Ack:
-					// Just do nothing
-					break;
+				else {
+					// Rewind and blast
+					this->pipe_xfer_buffers[idx] = (void *)((uint32_t)(this->pipe_xfer_buffers[idx]) - this->pipe_xfer_rx_amounts[idx] * 4);
+					blast_next_packet(idx);
 				}
-
-				// The channel is now disabled correctly, so clear this flag.
-				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_CHH;
-				USB_OTG_HS_HC(i)->HCCHAR &= ~USB_OTG_HCCHAR_CHDIS;
-
-				// We also no longer need to hear interrupts from this channel, so clear its msk
-				USB_OTG_HS_HOST->HAINTMSK &= ~(1 << i);
-			}
-			else if (USB_OTG_HS_HC(i)->HCINT & USB_OTG_HCINT_ACK) {
-				USB_OTG_HS_HC(i)->HCINT |= USB_OTG_HCINT_ACK;
-
-				// Check if more data is available?
-				if (USB_OTG_HS_HC(i)->HCCHAR & USB_OTG_HCCHAR_EPDIR) {
-					auto tmp = USB_OTG_HS_HC(i)->HCCHAR;
-					tmp &= ~USB_OTG_HCCHAR_CHDIS;
-					USB_OTG_HS_HC(i)->HCCHAR = tmp | USB_OTG_HCCHAR_CHENA; // BLAST
-				}
-			}
-			else {
-				printf("?? %d\n", USB_OTG_HS_HC(i)->HCINT);
-				// Who knows, so let's clear all interrupts just to be safe
-				USB_OTG_HS_HC(i)->HCINT = 0xff;
 			}
 		}
 	}
-	if (USB_OTG_HS->GINTSTS & USB_OTG_GINTSTS_SOF) USB_OTG_HS->GINTSTS |= USB_OTG_GINTSTS_SOF;
 }
 
 bool usb::MidiDevice::handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol) {
@@ -670,7 +826,7 @@ bool usb::MidiDevice::handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtoc
 }
 
 void usb::MidiDevice::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, usb::HostBase *hb) {
-	puts("MidiDevice is initing");
+	//puts("MidiDevice is initing");
 
 	// TODO
 }
