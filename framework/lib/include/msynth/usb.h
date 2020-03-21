@@ -531,7 +531,6 @@ namespace usb {
 				return init_status::TxnErrorDuringEnumeration;
 			}
 
-			int retry_counter = 0;
 			
 			// It was! Now we can read the device descriptor
 			alignas(4) uint8_t partial_device_descriptor[8];
@@ -564,7 +563,7 @@ namespace usb {
 
 			// CONTROL TRANSFER 1 is complete.
 
-			// TODO: do we need a reset here?
+			// Reset just in case, although only _super_ old stuff really needs this.
 			{
 				auto hprt = USB_OTG_HS_HPRT0;
 				hprt &= ~USB_OTG_HPRT_PENA;
@@ -575,7 +574,6 @@ namespace usb {
 				USB_OTG_HS_HPRT0 = hprt;
 			}
 			
-			retry_counter = 0;
 			configure_pipe(ep0_pipe_out, 0 /* setup address */, 0 /* DCP */, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, false /* data toggle is always 0 */);
 			// Set address to 0x10 (some random number) to make the USB happy
 			request.bmRequestType = 0;
@@ -593,8 +591,6 @@ namespace usb {
 				return init_status::TxnErrorDuringEnumeration;
 			}
 			// No data phase, so send an IN with size == 0
-			//
-			// TODO: should this go to addr == 0x10?
 			configure_pipe(ep0_pipe_in, 0 /* setup address */, 0 /* DCP */, ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, true);
 			submit_xfer(ep0_pipe_in, 0, (void*)0xdeefdeef);
 			// Wait for it to finish
@@ -607,8 +603,6 @@ namespace usb {
 
 			// CONTROL TRANSFER 2 (SET_ADDRESS) is complete
 			// PHASE 1 IS COMPLETE
-
-			retry_counter = 0;
 
 			// PHASE 2 START
 			// Read the entire device descriptor. It is _exactly_ 18 bytes (0x12) long
@@ -653,72 +647,80 @@ namespace usb {
 
 			// CONTROL TRANSFER 3 (get_descriptor 2) COMPLETE
 
+			// PHASE 3 begin
+			//
+			// Read the configuration descriptor set (unconditionally because it will get read by the next phase anyways)
+
+
+			// We need to first find the size of the descriptors
+			request.bmRequestType = 0b1'00'00000; //device to host, standard, device
+			request.bRequest = 6; // GET_DESCRIPTOR
+			request.wValue = (2 /* CONFIGURATION */ << 8);
+			request.wIndex = 0;
+			request.wLength = 9; // get the entire thing
+			configure_pipe(ep0_pipe_out, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
+			submit_xfer(ep0_pipe_out, sizeof(request), &request, true); // is_setup=True
+			while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
+			if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
+				return init_status::TxnErrorDuringEnumeration;
+			}
+
+			// Read the entire thing in the data phase
+			configure_pipe(ep0_pipe_in, 0x10, 0, ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, false);
+			raw::ConfigurationDescriptor cd;
+			submit_xfer(ep0_pipe_in, 0x9, &cd);
+			while (check_xfer_state(ep0_pipe_in) == transaction_status::InProgress) {;}
+			if (check_xfer_state(ep0_pipe_in) != transaction_status::Ack) {
+				return init_status::TxnErrorDuringEnumeration;
+			}
+			
+			// Send a STATUS OUT
+			configure_pipe(ep0_pipe_out, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true); // data toggle is still 1, yo
+			submit_xfer(ep0_pipe_out, 0, (void*)0xfeedfeed);
+			while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
+			if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
+				return init_status::TxnErrorDuringEnumeration;
+			}
+
+			// We now have the CD, so let's read the entire descriptor set
+			alignas(4) uint8_t configuration_descriptor_set[cd.wTotalLength];
+			request.bmRequestType = 0b1'00'00000; //device to host, standard, device
+			request.bRequest = 6; // GET_DESCRIPTOR
+			request.wValue = (2 /* CONFIGURATION */ << 8);
+			request.wIndex = 0;
+			request.wLength = cd.wTotalLength; // get the entire thing
+			configure_pipe(ep0_pipe_out, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
+			submit_xfer(ep0_pipe_out, sizeof(request), &request, true); // is_setup=True
+			while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
+			if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
+				return init_status::TxnErrorDuringEnumeration;
+			}
+
+			// Read the entire thing in the data phase
+			configure_pipe(ep0_pipe_in, 0x10, 0, ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, false);
+			submit_xfer(ep0_pipe_in, cd.wTotalLength, &configuration_descriptor_set);
+			while (check_xfer_state(ep0_pipe_in) == transaction_status::InProgress) {;}
+			if (check_xfer_state(ep0_pipe_in) != transaction_status::Ack) {
+				return init_status::TxnErrorDuringEnumeration;
+			}
+			
+			// Send a STATUS OUT
+			configure_pipe(ep0_pipe_out, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true); // data toggle is still 1, yo
+			submit_xfer(ep0_pipe_out, 0, (void*)0xfeedfeed);
+			while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
+			if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
+				return init_status::TxnErrorDuringEnumeration;
+			}
+
+			// We now have a set of INTERFACE and ENDPOINT DESCRIPTORS.
+			// It is therefore safe to destroy ep0_pipe
+
+			destroy_pipe(ep0_pipe_out);
+			destroy_pipe(ep0_pipe_in);
+
+			// PHASE 3 complete
+
 			if (dd.bDeviceClass == 0 && dd.bDeviceSubClass == 0 && dd.bDeviceProtocol == 0) {
-				// We need to first find the size of the descriptors
-				request.bmRequestType = 0b1'00'00000; //device to host, standard, device
-				request.bRequest = 6; // GET_DESCRIPTOR
-				request.wValue = (2 /* CONFIGURATION */ << 8);
-				request.wIndex = 0;
-				request.wLength = 9; // get the entire thing
-				configure_pipe(ep0_pipe_out, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
-				submit_xfer(ep0_pipe_out, sizeof(request), &request, true); // is_setup=True
-				while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
-				if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
-					return init_status::TxnErrorDuringEnumeration;
-				}
-
-				// Read the entire thing in the data phase
-				configure_pipe(ep0_pipe_in, 0x10, 0, ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, false);
-				raw::ConfigurationDescriptor cd;
-				submit_xfer(ep0_pipe_in, 0x9, &cd);
-				while (check_xfer_state(ep0_pipe_in) == transaction_status::InProgress) {;}
-				if (check_xfer_state(ep0_pipe_in) != transaction_status::Ack) {
-					return init_status::TxnErrorDuringEnumeration;
-				}
-				
-				// Send a STATUS OUT
-				configure_pipe(ep0_pipe_out, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true); // data toggle is still 1, yo
-				submit_xfer(ep0_pipe_out, 0, (void*)0xfeedfeed);
-				while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
-				if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
-					return init_status::TxnErrorDuringEnumeration;
-				}
-
-				// We now have the CD, so let's read the entire descriptor set
-				alignas(4) uint8_t configuration_descriptor_set[cd.wTotalLength];
-				request.bmRequestType = 0b1'00'00000; //device to host, standard, device
-				request.bRequest = 6; // GET_DESCRIPTOR
-				request.wValue = (2 /* CONFIGURATION */ << 8);
-				request.wIndex = 0;
-				request.wLength = cd.wTotalLength; // get the entire thing
-				configure_pipe(ep0_pipe_out, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
-				submit_xfer(ep0_pipe_out, sizeof(request), &request, true); // is_setup=True
-				while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
-				if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
-					return init_status::TxnErrorDuringEnumeration;
-				}
-
-				// Read the entire thing in the data phase
-				configure_pipe(ep0_pipe_in, 0x10, 0, ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, false);
-				submit_xfer(ep0_pipe_in, cd.wTotalLength, &configuration_descriptor_set);
-				while (check_xfer_state(ep0_pipe_in) == transaction_status::InProgress) {;}
-				if (check_xfer_state(ep0_pipe_in) != transaction_status::Ack) {
-					return init_status::TxnErrorDuringEnumeration;
-				}
-				
-				// Send a STATUS OUT
-				configure_pipe(ep0_pipe_out, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true); // data toggle is still 1, yo
-				submit_xfer(ep0_pipe_out, 0, (void*)0xfeedfeed);
-				while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
-				if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
-					return init_status::TxnErrorDuringEnumeration;
-				}
-
-				// We now have a set of INTERFACE and ENDPOINT DESCRIPTORS.
-				// It is therefore safe to destroy ep0_pipe
-
-				destroy_pipe(ep0_pipe_out);
-				destroy_pipe(ep0_pipe_in);
 				// Using some questionable logic, we iterate over all of them.
 
 				// Devices will almost certainly re-request this data but eh.
@@ -730,7 +732,7 @@ namespace usb {
 					 (SupportedDevices::handles(id.bInterfaceClass, id.bInterfaceSubClass, id.bInterfaceProtocol) && 
 					  (
 						device.template assign<SupportedDevices>(), 
-						dev<SupportedDevices>().init(ep0_mps, id.bInterfaceClass, id.bInterfaceSubClass, id.bInterfaceProtocol, static_cast<HostBase *>(this)),
+						dev<SupportedDevices>().init(ep0_mps, id.bInterfaceClass, id.bInterfaceSubClass, id.bInterfaceProtocol, configuration_descriptor_set, static_cast<HostBase *>(this)),
 						true
 					  )
 					 ) || ...
@@ -742,16 +744,7 @@ namespace usb {
 				// We have not got the correct thing
 				return init_status::NotSupported;
 			}
-
-			// PHASE 2 COMPLETE
-
 			else {
-				
-				// PHASE 3a START (no config)
-				// We can now destroy our pipe
-				destroy_pipe(ep0_pipe_out);
-				destroy_pipe(ep0_pipe_in);
-
 				// Begin deferring to the different types of SupportedDevices.
 
 				// If you get a compile error here you probably didn't define a static handles in your device class
@@ -759,7 +752,7 @@ namespace usb {
 				 (SupportedDevices::handles(dd.bDeviceClass, dd.bDeviceSubClass, dd.bDeviceProtocol) && 
 				  (
 					device.template assign<SupportedDevices>(), 
-					dev<SupportedDevices>().init(ep0_mps, dd.bDeviceClass, dd.bDeviceSubClass, dd.bDeviceProtocol, static_cast<HostBase *>(this)),
+					dev<SupportedDevices>().init(ep0_mps, dd.bDeviceClass, dd.bDeviceSubClass, dd.bDeviceProtocol, configuration_descriptor_set, static_cast<HostBase *>(this)),
 					true
 				  )
 				 ) || ...
@@ -817,7 +810,7 @@ namespace usb {
 		// Does this driver deal with this device/interface combo?
 		static bool handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol);
 		
-		void init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, HostBase *hb);
+		void init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, uint8_t *config_descriptor, HostBase *hb);
 	private:
 		uint8_t ep_in, ep_out;
 	};
@@ -825,6 +818,6 @@ namespace usb {
 	struct HID {
 		static bool handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol);
 
-		void init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, HostBase *hb);
+		void init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, uint8_t *config_descriptor, HostBase *hb);
 	};
 }

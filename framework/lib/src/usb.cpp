@@ -615,8 +615,8 @@ void usb::HostBase::channel_irq_out(usb::pipe_t idx) {
 
 		USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
 		
-		// Apparently we're supposed to disable the channel here as well?
-		// I don't think so...
+		// Update data toggle
+		this->data_toggles ^= (1 << idx);
 	}
 	else if (USB_OTG_HS_HC(idx)->HCINT & USB_OTG_HCINT_ACK) {
 		// A packet was succesfully received, but there is more to send. Blast out another packet
@@ -825,8 +825,8 @@ bool usb::MidiDevice::handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtoc
 	return (bClass == 0x01 /* AUDIO */) && (bSubClass == 0x03 /* MIDISTREAMING */);
 }
 
-void usb::MidiDevice::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, usb::HostBase *hb) {
-	//puts("MidiDevice is initing");
+void usb::MidiDevice::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, uint8_t* config_descriptor, usb::HostBase *hb) {
+	puts("MidiDevice is initing");
 
 	// TODO
 }
