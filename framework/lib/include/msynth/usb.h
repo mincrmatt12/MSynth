@@ -37,6 +37,7 @@
 #include <stm32f4xx_ll_exti.h>
 
 #include <string.h>
+#include <stdio.h>
 
 #define USB_OTG_HS_HOST       ((USB_OTG_HostTypeDef *)((uint32_t )USB_OTG_HS_PERIPH_BASE + USB_OTG_HOST_BASE))
 #define USB_OTG_HS_HC(i)      ((USB_OTG_HostChannelTypeDef *)((uint32_t)USB_OTG_HS_PERIPH_BASE + USB_OTG_HOST_CHANNEL_BASE + (i)*USB_OTG_HOST_CHANNEL_SIZE))
@@ -577,6 +578,7 @@ namespace usb {
 			while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
 			// Was this transfer ok?
 			if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
+				puts("fa?");
 				// We have failed
 				return init_status::TxnErrorDuringEnumeration;
 			}

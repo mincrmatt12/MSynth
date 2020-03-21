@@ -265,8 +265,10 @@ void usb::HostBase::blast_next_packet(usb::pipe_t idx) {
 	int length = (tmp & USB_OTG_HCTSIZ_XFRSIZ) >> USB_OTG_HCTSIZ_XFRSIZ_Pos;
 	//printf("l %d; mps %d\n", length, mps);
 	enable_channel(idx);
-	if (!length) return;
-	{
+	if (!length) {
+		data_toggles ^= (1 << idx);
+	}
+	else {
 		int pktremain = (tmp & USB_OTG_HCTSIZ_PKTCNT) >> USB_OTG_HCTSIZ_PKTCNT_Pos;
 		int next_packet_word_count = (pktremain != 1) ? mps / 4 : (length % mps) / 4;
 		if (pktremain == 1 && next_packet_word_count == 0 && !(pipe_zlp_enable & (1 << idx))) next_packet_word_count = mps / 4;
@@ -453,6 +455,7 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 		// Simply enable the channel.
 		this->pipe_xfer_rx_amounts[idx] = 0; 
 
+		data_toggles ^= (1 << idx);
 		enable_channel(idx);
 	}
 	else {
@@ -604,6 +607,7 @@ void usb::HostBase::channel_irq_out(usb::pipe_t idx) {
 
 		USB_OTG_HS_HC(idx)->HCINT |= (USB_OTG_HCINT_XFRC | USB_OTG_HCINT_ACK); // Also clear ACK since it will get set at the same time.
 		this->pipe_statuses[idx] = transaction_status::Ack;
+		this->pipe_repeat_counts[idx] = 0;
 
 		// Call the callback if set
 
@@ -630,16 +634,8 @@ void usb::HostBase::channel_irq_out(usb::pipe_t idx) {
 		USB_OTG_HS_HC(idx)->HCINT |= USB_OTG_HCINT_NAK;
 		// The device is not ready to get data yet, but is open for more attempts. Check if we have exceeded the retry counter.
 		if (++this->pipe_repeat_counts[idx] < 3) {
-			// Send the same request as we just did. blast_next_packet stores the number of words it just sent in pipe_xfer_rx_amounts[idx].
-			// We rewind the buffer that many things and then re-run the function.
-			if (pipe_nak_defer & (1 << idx)) {
-				pipe_nak_defer_waiting |= (1 << idx);
-			}
-			else {
-				if (pipe_nak_delay & (1 << idx)) util::delay(2);
-				this->pipe_xfer_buffers[idx] = (void *)((uint32_t)(this->pipe_xfer_buffers[idx]) - this->pipe_xfer_rx_amounts[idx] * 4);
-				blast_next_packet(idx);
-			}
+			this->pipe_statuses[idx] = transaction_status::InProgress;
+			disable_channel(idx);
 		}
 		else {
 			// We are unable to send more requests, cancel and halt channel
@@ -684,11 +680,28 @@ void usb::HostBase::channel_irq_out(usb::pipe_t idx) {
 			USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
 		}
 		else {
-			// If there (somehow) isn't a valid excuse for stopping, set one
-			if (this->pipe_statuses[idx] == transaction_status::InProgress) this->pipe_statuses[idx] = transaction_status::XferError;
-			this->pipe_callbacks[idx](idx, this->pipe_statuses[idx]);
-			// Destroy the pipe callback
-			new (&this->pipe_callbacks[idx]) pipe::Callback{};
+			// If the excuse for stopping wasn't set, then we assume that we're coming from a NAK and should restart the channel.
+			if (this->pipe_statuses[idx] == transaction_status::InProgress) {
+				// Try to re-do it.
+
+				// Update the DPID (setup case is forbidden from sending a NAK)
+				if (data_toggles & (1 << idx)) USB_OTG_HS_HC(idx)->HCTSIZ |= USB_OTG_HCTSIZ_DPID_1;
+				else                           USB_OTG_HS_HC(idx)->HCTSIZ &= ~USB_OTG_HCTSIZ_DPID_1;
+
+				// Rewind the buffer ptr
+				this->pipe_xfer_buffers[idx] = (void *)((uint32_t)(this->pipe_xfer_buffers[idx]) - this->pipe_xfer_rx_amounts[idx] * 4);
+
+				if (pipe_nak_delay & (1 << idx)) util::delay(2);
+				if (pipe_nak_defer & (1 << idx)) {
+					pipe_nak_defer_waiting |= (1 << idx);
+				}
+				else blast_next_packet(idx);
+			}
+			else {
+				this->pipe_callbacks[idx](idx, this->pipe_statuses[idx]);
+				// Destroy the pipe callback
+				new (&this->pipe_callbacks[idx]) pipe::Callback{};
+			}
 		}
 
 		USB_OTG_HS_HOST->HAINTMSK &= ~(1 << idx);
@@ -812,8 +825,7 @@ end:
 					enable_channel(idx);
 				}
 				else {
-					// Rewind and blast
-					this->pipe_xfer_buffers[idx] = (void *)((uint32_t)(this->pipe_xfer_buffers[idx]) - this->pipe_xfer_rx_amounts[idx] * 4);
+					// Rewinding handled earlier
 					blast_next_packet(idx);
 				}
 			}
