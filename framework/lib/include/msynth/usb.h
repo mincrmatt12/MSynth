@@ -822,7 +822,7 @@ namespace usb {
 		
 		void init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, uint8_t *config_descriptor, HostBase *hb);
 	private:
-		uint8_t ep_in, ep_out;
+		uint8_t ep_in;
 	};
 
 	struct HID {
