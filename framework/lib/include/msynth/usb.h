@@ -221,11 +221,21 @@ namespace usb {
 
 			// Functional API
 
+			// Create from member function
 			template<typename T>
 			inline static Callback create(T& instance, void (T::* mptr)(pipe_t, transaction_status)) {
 				return {reinterpret_cast<PtrType>(mptr), (void*)(&instance)};
 			}
+
+			// Create from lambda/function object.
+			// Note that this does not store the object itself, so it should be kept around until called.
+			template<typename T>
+			inline static std::enable_if_t<std::is_invocable_v<T, pipe_t, transaction_status> && std::is_object_v<std::decay_t<T>>, Callback> create(T& instance) {
+				return create(instance, T::operator());
+			}
 			
+			// Create from a normal function pointer. Note that you must take a void * as your first parameter.
+			// If you want to customize this pointer, change the public argument member.
 			inline static Callback create(PtrType target) {
 				return {target};
 			}
