@@ -57,7 +57,7 @@ namespace util {
 		}
 
 		// Execute callback
-		inline void operator()(Args&& ...args) const {
+		inline void operator()(Args ...args) const {
 			if (target == nullptr) return;
 			target(argument, std::forward<Args>(args)...);
 		}

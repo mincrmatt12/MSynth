@@ -37,7 +37,6 @@
 #include <stm32f4xx_ll_exti.h>
 
 #include <string.h>
-#include <stdio.h>
 
 #define USB_OTG_HS_HOST       ((USB_OTG_HostTypeDef *)((uint32_t )USB_OTG_HS_PERIPH_BASE + USB_OTG_HOST_BASE))
 #define USB_OTG_HS_HC(i)      ((USB_OTG_HostChannelTypeDef *)((uint32_t)USB_OTG_HS_PERIPH_BASE + USB_OTG_HOST_CHANNEL_BASE + (i)*USB_OTG_HOST_CHANNEL_SIZE))
@@ -542,7 +541,6 @@ namespace usb {
 			while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
 			// Was this transfer ok?
 			if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
-				puts("fa?");
 				// We have failed
 				return init_status::TxnErrorDuringEnumeration;
 			}
@@ -793,12 +791,33 @@ namespace usb {
 	};
 
 	struct MidiDevice {
+		// Called whenever there's more MIDI data.
+		// This is sent in as a normal midi datastream (not the USB-MIDI format)
+		typedef util::FuncHolder<void, uint8_t * /* data */, size_t /* length */> EventCallback;
+
 		// Does this driver deal with this device/interface combo?
 		static bool handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol);
-		
 		void init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, uint8_t *config_descriptor, HostBase *hb);
+
+		// Set the event callback (called on midi data)
+		void set_callback(EventCallback cb); // note: rvalue refs are not used here since FuncHolder is POD
+
+		// Grab new data from the device.
+		void update();
 	private:
+		// Xfer callback
+		void xfer_cb(pipe_t idx, transaction_status status);
+
+		struct EventType {
+			uint8_t cable_code;
+			uint8_t midi[3];
+		};
+
 		uint8_t ep_in;
+		HostBase *hb = nullptr;
+		EventCallback cb;
+
+		EventType rx_buffer[64 / 4]; // TODO: tune me
 	};
 
 	struct HID {
