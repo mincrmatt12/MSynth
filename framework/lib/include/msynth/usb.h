@@ -595,6 +595,9 @@ namespace usb {
 			request.wValue = (1 /* DEVICE */ << 8);
 			request.wIndex = 0;
 			request.wLength = 18; // get the entire thing
+
+			int retry_counter = 0;
+retry_post_reset_grab:
 			configure_pipe(ep0_pipe_out, 0x10 /* new address */, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
 			// Send this request
 			submit_xfer(ep0_pipe_out, sizeof(request), &request, true); // is_setup=True
@@ -602,6 +605,11 @@ namespace usb {
 			while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
 			// Was this transfer ok?
 			if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
+				if (++retry_counter < 3) {
+					util::delay(2);
+					goto retry_post_reset_grab;
+				}
+				// Some usb device implementations hang here.
 				// We have failed
 				return init_status::TxnErrorDuringEnumeration;
 			}
