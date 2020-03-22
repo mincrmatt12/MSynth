@@ -101,7 +101,6 @@ void usb::MidiDevice::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, u
 	while (hb->check_xfer_state(ep0_pipe) == transaction_status::InProgress) {}
 	if (hb->check_xfer_state(ep0_pipe) != transaction_status::Ack) {
 		// failure!
-		puts("midifail");
 		return;
 	}
 
@@ -111,11 +110,8 @@ void usb::MidiDevice::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, u
 	while (hb->check_xfer_state(ep0_pipe) == transaction_status::InProgress) {}
 	if (hb->check_xfer_state(ep0_pipe) != transaction_status::Ack) {
 		// failure!
-		puts("midifail");
 		return;
 	}
-
-	puts("cfgdred device");
 
 	// Get rid of the ep0 pipe, since we don't need it anymore.
 	// TODO: put ep0_mps into HostBase
@@ -131,7 +127,7 @@ void usb::MidiDevice::update() {
 	if (hb->check_xfer_state(ep_in) == transaction_status::InProgress) return; // Let it finish first.
 
 	// Start a new transfer of max size 64 (since that's our buffer size)
-	hb->submit_xfer(ep_in, 64, &rx_buffer, pipe::Callback::create(*this, &MidiDevice::xfer_cb));
+	hb->submit_xfer(ep_in, 64, rx_buffer, pipe::Callback::create(*this, &MidiDevice::xfer_cb));
 }
 
 void usb::MidiDevice::xfer_cb(pipe_t idx, transaction_status status) {
@@ -140,10 +136,7 @@ void usb::MidiDevice::xfer_cb(pipe_t idx, transaction_status status) {
 
 	// We have received some data
 	auto amt = hb->check_received_amount(ep_in);
-	printf("got %d for midi\n", amt);
-
 	if (amt % 4) {
-		puts("not 4");
 		return;
 	}
 
