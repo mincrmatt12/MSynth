@@ -1,8 +1,20 @@
 #include "usb.h"
+#include "msynth/sound.h"
 #include <msynth/draw.h>
 #include <msynth/fs.h>
+#include <cmath>
+
+#include <stdio.h>
 
 extern usb::Host<usb::StaticStateHolder, usb::MidiDevice> usb_host;
+
+namespace {
+	// CRAPSynth Player™ state
+	bool note_on = false;
+	uint16_t freq = 0;
+	uint16_t amplitude = 0;
+	uint16_t sample_buffer[1024] = {0};
+}
 
 void UsbTest::start() {
 	uiFnt  = fs::open("fonts/djv_16.fnt");
@@ -27,6 +39,7 @@ TestState UsbTest::loop() {
 				break;
 			case Ready:
 				draw::fill(0b11'00'11'11);
+				draw::text(30, 100, "MidiRunning", bigFnt, 0x00);
 				// TODO
 				break;
 			case UndefinedState:
@@ -96,4 +109,32 @@ void UsbTest::got_midi(uint8_t *buf, size_t len) {
 		printf("%02x ", buf[i]);
 	}
 	puts(";");
+	
+	if (len == 3) {
+		if (buf[0] == 0x90 && buf[2]) {
+			amplitude = (uint16_t)(buf[2]) * (65535 / 0x7f);
+			freq = (uint16_t)(std::pow(2.0f, (buf[1] - 69) / 12.0f) * 440.0f);
+			note_on = true;
+		}
+		else if (buf[0] == 0x80) {
+			note_on = false;
+		}
+		else return;
+		if (note_on) {
+			int length = 44100 / freq;
+			int offset = amplitude / length;
+			uint16_t b = 0;
+			for (int i = 0; i < length; ++i) {
+				sample_buffer[i*2] = b;
+				sample_buffer[i*2 + 1] = b;
+				b += offset;
+			}
+
+			sound::continuous_sample(sample_buffer, length);
+		}
+		else {
+			memset(sample_buffer, 0, 3);
+			sound::continuous_sample(sample_buffer, 3);
+		}
+	}
 }
