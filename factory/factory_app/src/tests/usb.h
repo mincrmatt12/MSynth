@@ -8,6 +8,8 @@ struct UsbTest {
 	TestState loop(); 
 
 private:
+	void got_midi(uint8_t *buf, size_t dat);
+
 	// USB TEST:
 	//
 	// Designed only for MIDI devices, and shows them on screen as connected

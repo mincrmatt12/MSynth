@@ -47,9 +47,9 @@ TestState UsbTest::loop() {
 			break;
 		case DetectingPeripheral:
 			{
-				util::delay(200);
 				init_error = usb_host.init_periph();
 				if (init_error == usb::init_status::Ok) {
+					usb_host.dev<usb::MidiDevice>().set_callback(usb::MidiDevice::EventCallback::create(*this, &UsbTest::got_midi));
 					state = Ready;
 				}
 				else {
@@ -79,10 +79,21 @@ TestState UsbTest::loop() {
 				}
 			}
 		case Ready:
+			{
+				usb_host.dev<usb::MidiDevice>().update();
+			}
 			break;
 		case UndefinedState:
 			break;
 	}
 
 	return InProgress;
+}
+
+void UsbTest::got_midi(uint8_t *buf, size_t len) {
+	printf("got midi: ");
+	for (int i = 0; i < len; ++i) {
+		printf("%02x ", buf[i]);
+	}
+	puts(";");
 }
