@@ -1,4 +1,5 @@
 #include "usb.h"
+#include "msynth/periphcfg.h"
 #include "msynth/sound.h"
 #include <msynth/draw.h>
 #include <msynth/fs.h>
@@ -14,6 +15,7 @@ namespace {
 	uint16_t freq = 0;
 	uint16_t amplitude = 0;
 	uint16_t sample_buffer[1024] = {0};
+	bool change = false;
 }
 
 void UsbTest::start() {
@@ -42,6 +44,9 @@ TestState UsbTest::loop() {
 				draw::text(30, 100, "MidiRunning", bigFnt, 0x00);
 				// TODO
 				break;
+			case Disconnected:
+				draw::fill(0b11'11'00'11);
+				draw::text(30, 100, "Disconnected", bigFnt, 0xff);
 			case UndefinedState:
 				break;
 		}
@@ -78,6 +83,9 @@ TestState UsbTest::loop() {
 						case usb::init_status::TxnErrorDuringEnumeration:
 							draw::text(cursor, 200, "TxnErrorDuringEnumeration", uiFnt, 0xfc);
 							break;
+						case usb::init_status::Timeout:
+							draw::text(cursor, 200, "Timeout", uiFnt, 0xfc);
+							break;
 						default:
 							draw::text(cursor, 200, "?? invalid retcode", uiFnt, 0xfc);
 							break;
@@ -93,9 +101,33 @@ TestState UsbTest::loop() {
 			}
 		case Ready:
 			{
+				if (!usb_host.inserted()) {
+					// Disconnect detected
+					usb_host.disable();
+					state = Disconnected;
+				}
 				usb_host.dev<usb::MidiDevice>().update();
+				if (change) {
+					change = false;
+					draw::rect(0, 200, 480, 240, 0);
+					char buf[32];
+					snprintf(buf, 32, "on %d; freq %d; amp %d", note_on, freq, amplitude);
+					draw::text(60, 230, buf, uiFnt, 0xff);
+				}
+
+				periph::ui::poll();
+				if (periph::ui::pressed(periph::ui::button::BKSP)) {
+					usb_host.disable();
+					return Ok;
+				}
 			}
 			break;
+		case Disconnected:
+			{
+				sound::stop_output();
+				util::delay(2000);
+				return Ok;
+			}
 		case UndefinedState:
 			break;
 	}
@@ -111,6 +143,7 @@ void UsbTest::got_midi(uint8_t *buf, size_t len) {
 	puts(";");
 	
 	if (len == 3) {
+		change = true;
 		if (buf[0] == 0x90 && buf[2]) {
 			amplitude = (uint16_t)(buf[2]) * (65535 / 0x7f);
 			freq = (uint16_t)(std::pow(2.0f, (buf[1] - 69) / 12.0f) * 440.0f);

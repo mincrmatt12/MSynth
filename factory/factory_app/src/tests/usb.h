@@ -19,6 +19,7 @@ private:
 		WaitingForInserted,
 		DetectingPeripheral,
 		Ready,
+		Disconnected,
 		UndefinedState
 	} state = WaitingForInserted, last_state = UndefinedState;
 
