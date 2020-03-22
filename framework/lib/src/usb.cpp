@@ -831,3 +831,50 @@ end:
 		}
 	}
 }
+
+bool usb::helper::standard_control_request(HostBase *hb, const raw::SetupData &sd, uint8_t pipe, void *result_or_request) {
+	hb->configure_pipe(pipe, 0x10, 0, hb->common_device_info.ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
+	hb->submit_xfer(pipe, sizeof(sd), const_cast<raw::SetupData *>(&sd), true); // is_setup=True (const cast because it will never be written)
+	while (hb->check_xfer_state(pipe) == transaction_status::InProgress) {;}
+	if (hb->check_xfer_state(pipe) != transaction_status::Ack) {
+		return false;
+	}
+
+	// Read/write the entire thing in the data phase
+	hb->configure_pipe(pipe, 0x10, 0, hb->common_device_info.ep0_mps, sd.bmRequestType & 0x80 ? pipe::EndpointDirectionIn : pipe::EndpointDirectionOut, pipe::EndpointTypeControl, false);
+	hb->submit_xfer(pipe, sd.wLength, result_or_request);
+	while (hb->check_xfer_state(pipe) == transaction_status::InProgress) {;}
+	if (hb->check_xfer_state(pipe) != transaction_status::Ack) {
+		return false;
+	}
+	
+	// Send a status token
+	hb->configure_pipe(pipe, 0x10, 0, hb->common_device_info.ep0_mps, sd.bmRequestType & 0x80 ? pipe::EndpointDirectionOut : pipe::EndpointDirectionIn, pipe::EndpointTypeControl, true); // data toggle is still 1, yo
+	hb->submit_xfer(pipe, 0, (void*)0xfeedfeed);
+	while (hb->check_xfer_state(pipe) == transaction_status::InProgress) {;}
+	if (hb->check_xfer_state(pipe) != transaction_status::Ack) {
+		return false;
+	}
+
+	return true;
+}
+
+bool usb::helper::standard_control_request(HostBase *hb, const raw::SetupData &sd, uint8_t pipe) {
+	// No data phase version
+	hb->configure_pipe(pipe, 0x10, 0, hb->common_device_info.ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
+	hb->submit_xfer(pipe, sizeof(sd), const_cast<raw::SetupData *>(&sd), true); // is_setup=True (const cast because it will never be written)
+	while (hb->check_xfer_state(pipe) == transaction_status::InProgress) {;}
+	if (hb->check_xfer_state(pipe) != transaction_status::Ack) {
+		return false;
+	}
+	
+	// Get a status token
+	hb->configure_pipe(pipe, 0x10, 0, hb->common_device_info.ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, true); // data toggle is still 1, yo
+	hb->submit_xfer(pipe, 0, (void*)0xfeedfeed);
+	while (hb->check_xfer_state(pipe) == transaction_status::InProgress) {;}
+	if (hb->check_xfer_state(pipe) != transaction_status::Ack) {
+		return false;
+	}
+
+	return true;
+}

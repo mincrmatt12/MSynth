@@ -7,7 +7,7 @@ bool usb::MidiDevice::handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtoc
 
 // CS_ENDPOINT
 
-void usb::MidiDevice::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, uint8_t* config_descriptor, usb::HostBase *hb) {
+bool usb::MidiDevice::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, uint8_t* config_descriptor, usb::HostBase *hb) {
 	this->hb = hb;
 	puts("MidiDevice is initing");
 
@@ -72,12 +72,9 @@ void usb::MidiDevice::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, u
 	// if mode == 3, this is the dnpoint.
 	if (mode != 3) {
 		// oh no
-		puts("ohno");
-		return;
+		return false;
 	}
 	
-	printf("got ep %d\n", epNum);
-
 	// We can now configure the device
 	
 	auto ep0_pipe = hb->allocate_pipe();
@@ -96,30 +93,16 @@ void usb::MidiDevice::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, u
 	req.wLength = 0;
 	req.wValue = cd.iConfiguration;
 
-	hb->configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
-	hb->submit_xfer(ep0_pipe, sizeof(req), &req, true);
-	while (hb->check_xfer_state(ep0_pipe) == transaction_status::InProgress) {}
-	if (hb->check_xfer_state(ep0_pipe) != transaction_status::Ack) {
-		// failure!
-		return;
-	}
-
-	// No data phase, so do a status IN
-	hb->configure_pipe(ep0_pipe, 0x10, 0, ep0_mps, pipe::EndpointDirectionIn, pipe::EndpointTypeControl, true); // DATA1 for status phase
-	hb->submit_xfer(ep0_pipe, 0, (void *)0xdeefd00f);
-	while (hb->check_xfer_state(ep0_pipe) == transaction_status::InProgress) {}
-	if (hb->check_xfer_state(ep0_pipe) != transaction_status::Ack) {
-		// failure!
-		return;
-	}
+	if (!helper::standard_control_request(hb, req, ep0_pipe)) return false;
 
 	// Get rid of the ep0 pipe, since we don't need it anymore.
-	// TODO: put ep0_mps into HostBase
 	
 	hb->destroy_pipe(ep0_pipe);
 
 	// Configure the pipe
 	hb->configure_pipe(ep_in, 0x10, epNum, epMps, pipe::EndpointDirectionIn, pipe::EndpointTypeBulk, false);
+
+	return true;
 }
 
 void usb::MidiDevice::update() {
