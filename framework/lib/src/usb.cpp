@@ -167,6 +167,7 @@ void usb::HostBase::init() {
 	USB_OTG_HS->GAHBCFG &= ~(USB_OTG_GAHBCFG_DMAEN);
 
 	// Clear all interrupts
+	// puts("bulk");
 	USB_OTG_HS->GINTSTS = 0xFFFFFFFF; // technically not compliant but screw it
 
 	// Power UP PHY
@@ -322,8 +323,8 @@ void usb::HostBase::configure_pipe(pipe_t idx, uint8_t address, uint8_t endpoint
 		((address << USB_OTG_HCCHAR_DAD_Pos) & USB_OTG_HCCHAR_DAD) |
 		((endpoint_num << USB_OTG_HCCHAR_EPNUM_Pos) & USB_OTG_HCCHAR_EPNUM) |
 		((max_pkt_size << USB_OTG_HCCHAR_MPSIZ_Pos) & USB_OTG_HCCHAR_MPSIZ) |
-		(((unsigned)ed << USB_OTG_HCCHAR_EPDIR_Pos) & USB_OTG_HCCHAR_EPDIR) |
-		(((unsigned)et << USB_OTG_HCCHAR_EPTYP_Pos) & USB_OTG_HCCHAR_EPTYP)
+		((unsigned(ed) << USB_OTG_HCCHAR_EPDIR_Pos) & USB_OTG_HCCHAR_EPDIR) |
+		((unsigned(et) << USB_OTG_HCCHAR_EPTYP_Pos) & USB_OTG_HCCHAR_EPTYP)
 	);
 
 	if (USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PSPD_1) USB_OTG_HS_HC(idx)->HCCHAR |=  USB_OTG_HCCHAR_LSDEV;
@@ -361,7 +362,7 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 	}
 	else {
 		// Check which type of transfer we are using
-		switch (((pipe::EndpointType)(USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPTYP) >> USB_OTG_HCCHAR_EPTYP_Pos)) {
+		switch (((pipe::EndpointType)((USB_OTG_HS_HC(idx)->HCCHAR & USB_OTG_HCCHAR_EPTYP) >> USB_OTG_HCCHAR_EPTYP_Pos))) {
 			case pipe::EndpointTypeControl:
 				// If setup stage, we won't get here
 				//
@@ -420,7 +421,6 @@ usb::transaction_status usb::HostBase::submit_xfer(pipe_t idx, uint16_t length, 
 	}
 
 	// Setup the transfer
-	//printf("dpid %d, pktcnt %d, xfrsiz %d\n", dpid, pkts, length);
 	this->pipe_xfer_buffers[idx] = buffer;
 	USB_OTG_HS_HC(idx)->HCTSIZ = (dpid << USB_OTG_HCTSIZ_DPID_Pos) |
 		((pkts << USB_OTG_HCTSIZ_PKTCNT_Pos) & USB_OTG_HCTSIZ_PKTCNT) |
@@ -785,7 +785,6 @@ void usb::HostBase::usb_global_irq() {
 				//printf("rxfifo = %u\n", *((uint32_t *)this->pipe_xfer_buffers[place]));
 				this->pipe_xfer_buffers[place] = ((uint32_t *)(this->pipe_xfer_buffers[place])) + 1;
 			}
-			//puts("rxend");
 			
 			// Update dtoggle
 			this->data_toggles ^= (1 << place);
