@@ -77,7 +77,7 @@ change_speed:
 			goto change_speed;
 		}
 
-		//USB_OTG_HS_HOST->HFIR = 47999U;
+		USB_OTG_HS_HOST->HFIR = 47999U;
 	}
 	else if ((USB_OTG_HS_HPRT0 & USB_OTG_HPRT_PSPD) == USB_OTG_HPRT_PSPD_1) {
 		// Low speed
