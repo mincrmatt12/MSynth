@@ -211,43 +211,7 @@ namespace usb {
 			EndpointDirectionIn = 1
 		};
 
-		struct Callback {
-			friend HostBase;
-			typedef void (*PtrType)(void * argument, pipe_t source, transaction_status event);
-
-			// Data API
-
-			PtrType target=nullptr;
-			void * argument=nullptr;
-
-			// Functional API
-
-			// Create from member function
-			template<typename T>
-			inline static Callback create(T& instance, void (T::* mptr)(pipe_t, transaction_status)) {
-				return {reinterpret_cast<PtrType>(mptr), (void*)(&instance)};
-			}
-
-			// Create from lambda/function object.
-			// Note that this does not store the object itself, so it should be kept around until called.
-			template<typename T>
-			inline static std::enable_if_t<std::is_invocable_v<T, pipe_t, transaction_status> && std::is_object_v<std::decay_t<T>>, Callback> create(T& instance) {
-				return create(instance, T::operator());
-			}
-			
-			// Create from a normal function pointer. Note that you must take a void * as your first parameter.
-			// If you want to customize this pointer, change the public argument member.
-			inline static Callback create(PtrType target) {
-				return {target};
-			}
-
-		private:
-			// Callback
-			inline void operator()(pipe_t idx, transaction_status sts) const {
-				if (target == nullptr) return;
-				target(argument, idx, sts);
-			}
-		};
+		typedef util::FuncHolder<void, pipe_t /* source */, transaction_status /* event */> Callback;
 	}
 
 	// HostBase is a low-level type that implements most of the logic in Host. It is effectively the template-invariant
