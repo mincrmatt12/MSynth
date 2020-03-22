@@ -52,6 +52,7 @@ namespace usb {
 		NotSupported, // The inserted device is either of a non-supported class, or is high-speed only.
 		NotInserted, // Nothing is currently inserted into the USB port.
 		TxnErrorDuringEnumeration, // There was a transactional error during enumeration
+		Timeout, // Timeout while waiting for a packet to transfer
 	};
 
 	enum struct transaction_status : uint8_t {
@@ -506,8 +507,17 @@ namespace usb {
 			request.wLength = 8; // only get the first 8 bytes
 			// Send this request
 			submit_xfer(ep0_pipe_out, sizeof(request), &request, true); // is_setup=True
+			// Initialize a timeout
+			uint32_t timeout_clock = 0;
 			// Wait for it to finish
-			while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {;}
+			while (check_xfer_state(ep0_pipe_out) == transaction_status::InProgress) {
+				if (SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) {
+					if (++timeout_clock > 500) {
+						// This device is a piece of crap.
+						return init_status::Timeout;
+					}
+				}
+			}
 
 			// Was this transfer ok?
 			if (check_xfer_state(ep0_pipe_out) != transaction_status::Ack) {
