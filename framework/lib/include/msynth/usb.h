@@ -316,7 +316,7 @@ namespace usb {
 		transaction_status check_xfer_state(pipe_t idx);
 
 		// Check the amount of received data (from the FIFO) for this packet
-		uint16_t check_received_amount(pipe_t idx);
+		uint16_t check_received_amount(pipe_t idx) { return pipe_xfer_rx_amounts[idx]; }
 
 	private:
 		// INTERNAL HELPERS
