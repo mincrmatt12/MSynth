@@ -449,11 +449,19 @@ namespace usb {
 	}
 
 	// Various helpers that use HostBase and hide some of the duplication involved in standard control requests/similar things.
+	//
+	// Also contains various structs that are exposed to the end user for device-agnostic data, like the DeviceInfo struct
 	namespace helper {
 		// Send a standard control request (blocking) with the request payload `sd`, over pipe `pipe` and optionally recording/sending
 		// the data phase in `result_or_request`
-		bool standard_control_request(HostBase *hb, const raw::SetupData &sd, uint8_t pipe, void* result_or_request);
-		bool standard_control_request(HostBase *hb, const raw::SetupData &sd, uint8_t pipe);
+		bool standard_control_request(HostBase *hb, const raw::SetupData &sd, pipe_t pipe, void* result_or_request);
+		bool standard_control_request(HostBase *hb, const raw::SetupData &sd, pipe_t pipe);
+
+		struct DeviceInfo {
+			uint16_t vendor_id, product_id, product_version;
+			char vendor_name[64];
+			char product_name[64];
+		};
 	}
 
 	template<template<typename...> typename StateHolderImpl, typename ...SupportedDevices>

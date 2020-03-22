@@ -832,7 +832,7 @@ end:
 	}
 }
 
-bool usb::helper::standard_control_request(HostBase *hb, const raw::SetupData &sd, uint8_t pipe, void *result_or_request) {
+bool usb::helper::standard_control_request(HostBase *hb, const raw::SetupData &sd, pipe_t pipe, void *result_or_request) {
 	hb->configure_pipe(pipe, 0x10, 0, hb->common_device_info.ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
 	hb->submit_xfer(pipe, sizeof(sd), const_cast<raw::SetupData *>(&sd), true); // is_setup=True (const cast because it will never be written)
 	while (hb->check_xfer_state(pipe) == transaction_status::InProgress) {;}
@@ -859,7 +859,7 @@ bool usb::helper::standard_control_request(HostBase *hb, const raw::SetupData &s
 	return true;
 }
 
-bool usb::helper::standard_control_request(HostBase *hb, const raw::SetupData &sd, uint8_t pipe) {
+bool usb::helper::standard_control_request(HostBase *hb, const raw::SetupData &sd, pipe_t pipe) {
 	// No data phase version
 	hb->configure_pipe(pipe, 0x10, 0, hb->common_device_info.ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
 	hb->submit_xfer(pipe, sizeof(sd), const_cast<raw::SetupData *>(&sd), true); // is_setup=True (const cast because it will never be written)
