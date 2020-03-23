@@ -791,6 +791,59 @@ retry_post_reset_grab:
 			return device.template get<T>();
 		}
 
+		// Get the device info
+		// WARNING: expensive and blocking
+		// This also has a habit of breaking devices, but it is called for you during init as well.
+		// If you run this, it might be a good bet to re-do init.
+		helper::DeviceInfo info() {
+			pipe_t ep0_pipe = allocate_pipe();
+			if (ep0_pipe == pipe::Busy) return {}; // Try again later
+			
+			set_retry_behavior(ep0_pipe, retry_behavior::CPUDelayed);
+
+			// Load the device info
+			raw::SetupData req;
+			req.bmRequestType = 0b1'00'00000;
+			req.bRequest = 6; // GET_DESCRIPTOR
+			req.wValue = (1 /* DEVICE */ << 8);
+			req.wIndex = 0;
+			req.wLength = 18;
+			raw::DeviceDescriptor dd;
+
+			if (!helper::standard_control_request(this, req, ep0_pipe, &dd)) {
+				helper::standard_control_request(this, req, ep0_pipe, &dd);
+			}
+
+			helper::DeviceInfo ret;
+			ret.product_id = dd.idProduct;
+			ret.vendor_id = dd.idVendor;
+			ret.product_version = dd.bcdDevice;
+			ret.product_name[0] = 0;
+			ret.vendor_name[0] = 0;
+
+			auto do_str = [&](uint16_t idx, char * tgt){
+				req.wValue = (3 << 8) | idx;
+				req.wLength = 256;
+				req.wIndex = 0x0409;
+
+				char temp[256];
+
+				if (helper::standard_control_request(this, req, ep0_pipe, temp)) {
+					for (int i = 2; i < temp[0]; i += 2) {
+						*tgt++ = temp[i];
+					}
+				}
+				*tgt = 0;
+			};
+
+			if (dd.iManufacturer) do_str(dd.iManufacturer, ret.vendor_name);
+			if (dd.iProduct) do_str(dd.iProduct, ret.product_name);
+
+			destroy_pipe(ep0_pipe);
+
+			return ret;
+		}
+
 		// INTERRUPTS
 		using HostBase::overcurrent_irq;
 		using HostBase::usb_global_irq;
