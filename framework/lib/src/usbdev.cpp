@@ -91,7 +91,7 @@ bool usb::MidiDevice::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, u
 	req.bmRequestType = 0;
 	req.wIndex = 0;
 	req.wLength = 0;
-	req.wValue = cd.iConfiguration;
+	req.wValue = cd.bConfigurationValue;
 
 	if (!helper::standard_control_request(hb, req, ep0_pipe)) return false;
 
