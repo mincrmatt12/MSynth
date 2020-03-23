@@ -40,13 +40,20 @@ TestState UsbTest::loop() {
 				draw::text(30, 100, "DetectingPeripheral", bigFnt, 0xff);
 				break;
 			case Ready:
-				draw::fill(0b11'00'11'11);
-				draw::text(30, 100, "MidiRunning", bigFnt, 0x00);
-				// TODO
+				{
+					draw::fill(0b11'00'11'11);
+					draw::text(30, 100, "MidiRunning", bigFnt, 0x00);
+					auto info = usb_host.info();
+					if (info.vendor_name[0] && info.product_name[0]) {
+						draw::text(draw::text(draw::text(30, 140, info.vendor_name, uiFnt, 0x00), 140, " : ", uiFnt, 0x00), 140, info.product_name, uiFnt, 0x00);
+					}
+					draw::text(30, 160, "[BKSP] to exit, or unplug the keyboard", uiFnt, 0b11'00'11'00);
+				}
 				break;
 			case Disconnected:
 				draw::fill(0b11'11'00'11);
 				draw::text(30, 100, "Disconnected", bigFnt, 0xff);
+				break;
 			case UndefinedState:
 				break;
 		}
@@ -85,6 +92,9 @@ TestState UsbTest::loop() {
 							break;
 						case usb::init_status::Timeout:
 							draw::text(cursor, 200, "Timeout", uiFnt, 0xfc);
+							break;
+						case usb::init_status::DeviceInitError:
+							draw::text(cursor, 200, "DeviceInitError", uiFnt, 0xfc);
 							break;
 						default:
 							draw::text(cursor, 200, "?? invalid retcode", uiFnt, 0xfc);
@@ -166,7 +176,7 @@ void UsbTest::got_midi(uint8_t *buf, size_t len) {
 			sound::continuous_sample(sample_buffer, length);
 		}
 		else {
-			memset(sample_buffer, 0, 3);
+			memset(sample_buffer, 0, 128);
 			sound::continuous_sample(sample_buffer, 3);
 		}
 	}
