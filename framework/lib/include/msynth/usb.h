@@ -593,6 +593,10 @@ namespace usb {
 				USB_OTG_HS_HPRT0 = hprt;
 			}
 			
+
+			int retry_counter = 0;
+retry_post_reset_grab:
+
 			configure_pipe(ep0_pipe, 0 /* setup address */, 0 /* DCP */, common_device_info.ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, false /* data toggle is always 0 */);
 			// Set address to 0x10 (some random number) to make the USB happy
 			request.bmRequestType = 0;
@@ -606,6 +610,10 @@ namespace usb {
 			while (check_xfer_state(ep0_pipe) == transaction_status::InProgress) {;}
 			// Was this transfer ok?
 			if (check_xfer_state(ep0_pipe) != transaction_status::Ack) {
+				if (++retry_counter < 3) {
+					util::delay(2);
+					goto retry_post_reset_grab;
+				}
 				// We have failed
 				return init_status::TxnErrorDuringEnumeration;
 			}
@@ -630,9 +638,6 @@ namespace usb {
 			request.wValue = (1 /* DEVICE */ << 8);
 			request.wIndex = 0;
 			request.wLength = 18; // get the entire thing
-
-			int retry_counter = 0;
-retry_post_reset_grab:
 			configure_pipe(ep0_pipe, 0x10 /* new address */, 0, common_device_info.ep0_mps, pipe::EndpointDirectionOut, pipe::EndpointTypeControl, true);
 			// Send this request
 			submit_xfer(ep0_pipe, sizeof(request), &request, true); // is_setup=True
@@ -640,10 +645,6 @@ retry_post_reset_grab:
 			while (check_xfer_state(ep0_pipe) == transaction_status::InProgress) {;}
 			// Was this transfer ok?
 			if (check_xfer_state(ep0_pipe) != transaction_status::Ack) {
-				if (++retry_counter < 3) {
-					util::delay(2);
-					goto retry_post_reset_grab;
-				}
 				// Some usb device implementations hang here.
 				// We have failed
 				return init_status::TxnErrorDuringEnumeration;
