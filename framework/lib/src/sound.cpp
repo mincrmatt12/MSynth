@@ -106,8 +106,6 @@ void sound::stop_output() {
 }
 
 void sound::continuous_sample(uint16_t *audio_data, uint32_t nsamples) {
-	// Stop stream
-	LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_4);
 	// Setup DMA
 	LL_DMA_SetMode(DMA1, LL_DMA_STREAM_4, LL_DMA_MODE_CIRCULAR);
 	LL_DMA_SetMemorySize(DMA1, LL_DMA_STREAM_4, LL_DMA_MDATAALIGN_HALFWORD);
