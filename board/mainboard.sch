@@ -8,34 +8,34 @@
 </settings>
 <grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
-<layer number="1" name="Top" color="4" fill="1" visible="yes" active="no"/>
-<layer number="2" name="Route2" color="16" fill="1" visible="yes" active="no"/>
-<layer number="3" name="Route3" color="17" fill="1" visible="yes" active="no"/>
-<layer number="4" name="Route4" color="18" fill="1" visible="yes" active="no"/>
-<layer number="5" name="Route5" color="19" fill="1" visible="yes" active="no"/>
-<layer number="6" name="Route6" color="25" fill="1" visible="yes" active="no"/>
-<layer number="7" name="Route7" color="26" fill="1" visible="yes" active="no"/>
-<layer number="8" name="Route8" color="27" fill="1" visible="yes" active="no"/>
-<layer number="9" name="Route9" color="28" fill="1" visible="yes" active="no"/>
-<layer number="10" name="Route10" color="29" fill="1" visible="yes" active="no"/>
-<layer number="11" name="Route11" color="30" fill="1" visible="yes" active="no"/>
-<layer number="12" name="Route12" color="20" fill="1" visible="yes" active="no"/>
-<layer number="13" name="Route13" color="21" fill="1" visible="yes" active="no"/>
-<layer number="14" name="Route14" color="22" fill="1" visible="yes" active="no"/>
-<layer number="15" name="Route15" color="23" fill="1" visible="yes" active="no"/>
-<layer number="16" name="Bottom" color="1" fill="1" visible="yes" active="no"/>
-<layer number="17" name="Pads" color="2" fill="1" visible="yes" active="no"/>
-<layer number="18" name="Vias" color="2" fill="1" visible="yes" active="no"/>
-<layer number="19" name="Unrouted" color="61" fill="1" visible="yes" active="no"/>
-<layer number="20" name="Dimension" color="24" fill="1" visible="yes" active="no"/>
-<layer number="21" name="tPlace" color="7" fill="1" visible="yes" active="no"/>
-<layer number="22" name="bPlace" color="7" fill="1" visible="yes" active="no"/>
-<layer number="23" name="tOrigins" color="15" fill="1" visible="yes" active="no"/>
-<layer number="24" name="bOrigins" color="15" fill="1" visible="yes" active="no"/>
-<layer number="25" name="tNames" color="7" fill="1" visible="yes" active="no"/>
-<layer number="26" name="bNames" color="7" fill="1" visible="yes" active="no"/>
-<layer number="27" name="tValues" color="7" fill="1" visible="yes" active="no"/>
-<layer number="28" name="bValues" color="7" fill="1" visible="yes" active="no"/>
+<layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
+<layer number="2" name="Route2" color="16" fill="1" visible="no" active="no"/>
+<layer number="3" name="Route3" color="17" fill="1" visible="no" active="no"/>
+<layer number="4" name="Route4" color="18" fill="1" visible="no" active="no"/>
+<layer number="5" name="Route5" color="19" fill="1" visible="no" active="no"/>
+<layer number="6" name="Route6" color="25" fill="1" visible="no" active="no"/>
+<layer number="7" name="Route7" color="26" fill="1" visible="no" active="no"/>
+<layer number="8" name="Route8" color="27" fill="1" visible="no" active="no"/>
+<layer number="9" name="Route9" color="28" fill="1" visible="no" active="no"/>
+<layer number="10" name="Route10" color="29" fill="1" visible="no" active="no"/>
+<layer number="11" name="Route11" color="30" fill="1" visible="no" active="no"/>
+<layer number="12" name="Route12" color="20" fill="1" visible="no" active="no"/>
+<layer number="13" name="Route13" color="21" fill="1" visible="no" active="no"/>
+<layer number="14" name="Route14" color="22" fill="1" visible="no" active="no"/>
+<layer number="15" name="Route15" color="23" fill="1" visible="no" active="no"/>
+<layer number="16" name="Bottom" color="1" fill="1" visible="no" active="no"/>
+<layer number="17" name="Pads" color="2" fill="1" visible="no" active="no"/>
+<layer number="18" name="Vias" color="2" fill="1" visible="no" active="no"/>
+<layer number="19" name="Unrouted" color="61" fill="1" visible="no" active="no"/>
+<layer number="20" name="Dimension" color="24" fill="1" visible="no" active="no"/>
+<layer number="21" name="tPlace" color="7" fill="1" visible="no" active="no"/>
+<layer number="22" name="bPlace" color="7" fill="1" visible="no" active="no"/>
+<layer number="23" name="tOrigins" color="15" fill="1" visible="no" active="no"/>
+<layer number="24" name="bOrigins" color="15" fill="1" visible="no" active="no"/>
+<layer number="25" name="tNames" color="7" fill="1" visible="no" active="no"/>
+<layer number="26" name="bNames" color="7" fill="1" visible="no" active="no"/>
+<layer number="27" name="tValues" color="7" fill="1" visible="no" active="no"/>
+<layer number="28" name="bValues" color="7" fill="1" visible="no" active="no"/>
 <layer number="29" name="tStop" color="7" fill="3" visible="no" active="no"/>
 <layer number="30" name="bStop" color="7" fill="6" visible="no" active="no"/>
 <layer number="31" name="tCream" color="7" fill="4" visible="no" active="no"/>
@@ -44,8 +44,8 @@
 <layer number="34" name="bFinish" color="6" fill="6" visible="no" active="no"/>
 <layer number="35" name="tGlue" color="7" fill="4" visible="no" active="no"/>
 <layer number="36" name="bGlue" color="7" fill="5" visible="no" active="no"/>
-<layer number="37" name="tTest" color="7" fill="1" visible="yes" active="no"/>
-<layer number="38" name="bTest" color="7" fill="1" visible="yes" active="no"/>
+<layer number="37" name="tTest" color="7" fill="1" visible="no" active="no"/>
+<layer number="38" name="bTest" color="7" fill="1" visible="no" active="no"/>
 <layer number="39" name="tKeepout" color="4" fill="11" visible="no" active="no"/>
 <layer number="40" name="bKeepout" color="1" fill="11" visible="no" active="no"/>
 <layer number="41" name="tRestrict" color="4" fill="10" visible="no" active="no"/>
@@ -53,19 +53,19 @@
 <layer number="43" name="vRestrict" color="2" fill="10" visible="no" active="no"/>
 <layer number="44" name="Drills" color="7" fill="1" visible="no" active="no"/>
 <layer number="45" name="Holes" color="7" fill="1" visible="no" active="no"/>
-<layer number="46" name="Milling" color="3" fill="1" visible="yes" active="no"/>
-<layer number="47" name="Measures" color="7" fill="1" visible="yes" active="no"/>
-<layer number="48" name="Document" color="7" fill="1" visible="yes" active="no"/>
-<layer number="49" name="Reference" color="7" fill="1" visible="yes" active="no"/>
-<layer number="50" name="dxf" color="7" fill="1" visible="yes" active="no"/>
-<layer number="51" name="tDocu" color="7" fill="1" visible="yes" active="no"/>
-<layer number="52" name="bDocu" color="7" fill="1" visible="yes" active="no"/>
-<layer number="53" name="tGND_GNDA" color="7" fill="9" visible="yes" active="no"/>
-<layer number="54" name="bGND_GNDA" color="1" fill="9" visible="yes" active="no"/>
-<layer number="56" name="wert" color="7" fill="1" visible="yes" active="no"/>
-<layer number="57" name="tCAD" color="7" fill="1" visible="yes" active="no"/>
-<layer number="59" name="tCarbon" color="7" fill="1" visible="yes" active="no"/>
-<layer number="60" name="bCarbon" color="7" fill="1" visible="yes" active="no"/>
+<layer number="46" name="Milling" color="3" fill="1" visible="no" active="no"/>
+<layer number="47" name="Measures" color="7" fill="1" visible="no" active="no"/>
+<layer number="48" name="Document" color="7" fill="1" visible="no" active="no"/>
+<layer number="49" name="Reference" color="7" fill="1" visible="no" active="no"/>
+<layer number="50" name="dxf" color="7" fill="1" visible="no" active="no"/>
+<layer number="51" name="tDocu" color="7" fill="1" visible="no" active="no"/>
+<layer number="52" name="bDocu" color="7" fill="1" visible="no" active="no"/>
+<layer number="53" name="tGND_GNDA" color="7" fill="9" visible="no" active="no"/>
+<layer number="54" name="bGND_GNDA" color="1" fill="9" visible="no" active="no"/>
+<layer number="56" name="wert" color="7" fill="1" visible="no" active="no"/>
+<layer number="57" name="tCAD" color="7" fill="1" visible="no" active="no"/>
+<layer number="59" name="tCarbon" color="7" fill="1" visible="no" active="no"/>
+<layer number="60" name="bCarbon" color="7" fill="1" visible="no" active="no"/>
 <layer number="88" name="SimResults" color="9" fill="1" visible="yes" active="yes"/>
 <layer number="89" name="SimProbes" color="9" fill="1" visible="yes" active="yes"/>
 <layer number="90" name="Modules" color="5" fill="1" visible="yes" active="yes"/>
@@ -20173,7 +20173,7 @@ package type OT</description>
 <packageinstance name="SOP254P1030X390-8L"/>
 </packageinstances>
 </package3d>
-<package3d name="RK09D1130C3C" urn="urn:adsk.eagle:package:15664657/2" type="model" library_version="9" library_locally_modified="yes">
+<package3d name="RK09D1130C3C" urn="urn:adsk.eagle:package:15664657/3" type="model" library_version="21" library_locally_modified="yes">
 <description>&lt;b&gt;RK09D1130C3C&lt;/b&gt;&lt;br&gt;</description>
 <packageinstances>
 <packageinstance name="RK09D1130C3C"/>
@@ -20192,7 +20192,7 @@ package type OT</description>
 <packageinstance name="SOT95P280X125-3L"/>
 </packageinstances>
 </package3d>
-<package3d name="TACTILE_SWITCH_PTH_6.0MM" urn="urn:adsk.eagle:package:15707497/2" type="model" library_version="12">
+<package3d name="TACTILE_SWITCH_PTH_6.0MM" urn="urn:adsk.eagle:package:15707497/3" type="model" library_version="21" library_locally_modified="yes">
 <description>Momentary Switch (Pushbutton) - SPST - PTH, 6.0mm Square
 Normally-open (NO) SPST momentary switches (buttons, pushbuttons).
 Datasheet (B3F-1000)</description>
@@ -20468,7 +20468,7 @@ Source: DCJ0202.pdf</description>
 <pin name="1" x="-5.08" y="0" visible="off" length="short" direction="pas" swaplevel="2"/>
 <pin name="2" x="5.08" y="0" visible="off" length="short" direction="pas" swaplevel="1" rot="R180"/>
 </symbol>
-<symbol name="5-PIN-DIN" library_version="12" library_locally_modified="yes">
+<symbol name="5-PIN-DIN" urn="urn:adsk.eagle:symbol:15707534/1" library_version="21" library_locally_modified="yes">
 <description>&lt;h3&gt;DIN5 Connector - Female Right Angle (frequently used as a MIDI Jack connector)&lt;/h3&gt;
 This type of connector and cable is frequently used for transmitting midi data (musical instrument digital interface). It is what you usually see on a keyboard or set of electronic drums. Learn more &lt;a href="https://en.wikipedia.org/wiki/MIDI"&gt;here&lt;/a&gt;.</description>
 <circle x="0" y="0" radius="7.62" width="0.254" layer="94"/>
@@ -20628,17 +20628,17 @@ This type of connector and cable is frequently used for transmitting midi data (
 </device>
 </devices>
 </deviceset>
-<deviceset name="STMPS2151" urn="urn:adsk.eagle:component:15626197/1" prefix="U" library_version="6">
+<deviceset name="STMPS2151" urn="urn:adsk.eagle:component:15626197/1" locally_modified="yes" prefix="U" library_version="21" library_locally_modified="yes">
 <gates>
 <gate name="G$1" symbol="STMPS2151" x="10.16" y="12.7"/>
 </gates>
 <devices>
 <device name="STR" package="SOT23-5L">
 <connects>
-<connect gate="G$1" pin="EN" pad="5"/>
+<connect gate="G$1" pin="EN" pad="4"/>
 <connect gate="G$1" pin="FAULT" pad="3"/>
 <connect gate="G$1" pin="GND" pad="2"/>
-<connect gate="G$1" pin="IN" pad="4"/>
+<connect gate="G$1" pin="IN" pad="5"/>
 <connect gate="G$1" pin="OUT" pad="1"/>
 </connects>
 <package3dinstances>
@@ -20696,7 +20696,7 @@ This type of connector and cable is frequently used for transmitting midi data (
 </device>
 </devices>
 </deviceset>
-<deviceset name="RK09D1130C2P" urn="urn:adsk.eagle:component:15664658/3" prefix="VR" library_version="10" library_locally_modified="yes">
+<deviceset name="RK09D1130C2P" urn="urn:adsk.eagle:component:15664658/4" prefix="VR" library_version="21" library_locally_modified="yes">
 <description>&lt;b&gt;Alps Electric 1 Gang Rotary Potentiometer with a 6 mm Dia. Shaft, 10k, +/-20%, 0.05W, Linear RK09D1130C2P&lt;/b&gt;&lt;p&gt;
 Source: &lt;a href="https://www.alps.com/prod/info/E/HTML/Potentiometer/RotaryPotentiometers/RK09K/RK09D1130C2P.html"&gt; Datasheet &lt;/a&gt;</description>
 <gates>
@@ -20712,7 +20712,7 @@ Source: &lt;a href="https://www.alps.com/prod/info/E/HTML/Potentiometer/RotaryPo
 <connect gate="G$2" pin="SHIELD" pad="4 5"/>
 </connects>
 <package3dinstances>
-<package3dinstance package3d_urn="urn:adsk.eagle:package:15664657/2"/>
+<package3dinstance package3d_urn="urn:adsk.eagle:package:15664657/3"/>
 </package3dinstances>
 <technologies>
 <technology name="">
@@ -20731,7 +20731,7 @@ Source: &lt;a href="https://www.alps.com/prod/info/E/HTML/Potentiometer/RotaryPo
 </device>
 </devices>
 </deviceset>
-<deviceset name="RS301111J00R" urn="urn:adsk.eagle:component:15664690/1" locally_modified="yes" prefix="VR" library_version="10" library_locally_modified="yes">
+<deviceset name="RS301111J00R" urn="urn:adsk.eagle:component:15664690/2" prefix="VR" library_version="21" library_locally_modified="yes">
 <description>&lt;b&gt;Slide Potentiometers 50 KOhms&lt;/b&gt;&lt;p&gt;
 Source: &lt;a href="https://datasheet.lcsc.com/szlcsc/1901091012_ALPS-Electric-RS301111J00R_C361172.pdf"&gt; Datasheet &lt;/a&gt;</description>
 <gates>
@@ -20780,7 +20780,7 @@ Source: &lt;a href="https://datasheet.lcsc.com/szlcsc/1901091012_ALPS-Electric-R
 </device>
 </devices>
 </deviceset>
-<deviceset name="B3F-1052" urn="urn:adsk.eagle:component:15707498/2" library_version="12">
+<deviceset name="B3F-1052" urn="urn:adsk.eagle:component:15707498/3" library_version="21" library_locally_modified="yes">
 <gates>
 <gate name="G$1" symbol="SWITCH-MOMENTARY-2" x="0" y="0"/>
 </gates>
@@ -20791,7 +20791,7 @@ Source: &lt;a href="https://datasheet.lcsc.com/szlcsc/1901091012_ALPS-Electric-R
 <connect gate="G$1" pin="2" pad="3"/>
 </connects>
 <package3dinstances>
-<package3dinstance package3d_urn="urn:adsk.eagle:package:15707497/2"/>
+<package3dinstance package3d_urn="urn:adsk.eagle:package:15707497/3"/>
 </package3dinstances>
 <technologies>
 <technology name=""/>
@@ -20799,7 +20799,7 @@ Source: &lt;a href="https://datasheet.lcsc.com/szlcsc/1901091012_ALPS-Electric-R
 </device>
 </devices>
 </deviceset>
-<deviceset name="DIN5" prefix="J" library_version="12" library_locally_modified="yes">
+<deviceset name="DIN5" urn="urn:adsk.eagle:component:15707536/1" prefix="J" library_version="21" library_locally_modified="yes">
 <description>&lt;h3&gt;DIN5 Connector - Female Right Angle (frequently used as a MIDI Jack connector)&lt;/h3&gt;
 This type of connector and cable is frequently used for transmitting midi data (musical instrument digital interface). It is what you usually see on a keyboard or set of electronic drums. Learn more &lt;a href="https://en.wikipedia.org/wiki/MIDI"&gt;here&lt;/a&gt;.
 &lt;br&gt;&lt;/br&gt;
@@ -25004,37 +25004,37 @@ Source: www.kingbright.com</description>
 <part name="R14" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-US_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="10k"/>
 <part name="GND28" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="FRAME6" library="frames" library_urn="urn:adsk.eagle:library:229" deviceset="LETTER_L" device=""/>
-<part name="S1" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S2" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S3" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S4" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S5" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S6" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S7" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S8" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S9" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S10" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S11" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S12" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S13" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S14" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S15" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S16" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S17" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S18" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S19" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S20" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S21" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S22" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
-<part name="S23" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052"/>
+<part name="S1" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S2" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S3" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S4" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S5" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S6" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S7" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S8" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S9" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S10" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S11" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S12" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S13" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S14" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S15" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S16" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S17" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S18" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S19" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S20" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S21" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S22" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
+<part name="S23" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="B3F-1052" device="" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052"/>
 <part name="GND29" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="R15" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-US_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="10k"/>
 <part name="R16" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-US_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="10k"/>
 <part name="R17" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-US_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="10k"/>
 <part name="R18" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-US_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="10k"/>
 <part name="R19" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-US_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="10k"/>
-<part name="VR1" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="RK09D1130C2P" device="" package3d_urn="urn:adsk.eagle:package:15664657/2"/>
-<part name="VR2" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="RK09D1130C2P" device="" package3d_urn="urn:adsk.eagle:package:15664657/2"/>
+<part name="VR1" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="RK09D1130C2P" device="" package3d_urn="urn:adsk.eagle:package:15664657/3"/>
+<part name="VR2" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="RK09D1130C2P" device="" package3d_urn="urn:adsk.eagle:package:15664657/3"/>
 <part name="GND30" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="VDD18" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="VDD" device=""/>
 <part name="VR3" library="msynth" library_urn="urn:adsk.eagle:library:15625405" deviceset="RS301111J00R" device="" package3d_urn="urn:adsk.eagle:package:15664689/2"/>

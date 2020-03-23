@@ -3,7 +3,7 @@
 <eagle version="9.5.2">
 <drawing>
 <settings>
-<setting alwaysvectorfont="yes"/>
+<setting alwaysvectorfont="no"/>
 <setting verticaltext="up"/>
 </settings>
 <grid distance="25" unitdist="mil" unit="mm" style="lines" multiple="1" display="no" altdistance="5" altunitdist="mil" altunit="mil"/>
@@ -2296,7 +2296,7 @@ package type OT</description>
 <packageinstance name="SOT23-5L"/>
 </packageinstances>
 </package3d>
-<package3d name="RK09D1130C3C" urn="urn:adsk.eagle:package:15664657/2" type="model" library_version="9" library_locally_modified="yes">
+<package3d name="RK09D1130C3C" urn="urn:adsk.eagle:package:15664657/3" type="model" library_version="21" library_locally_modified="yes">
 <description>&lt;b&gt;RK09D1130C3C&lt;/b&gt;&lt;br&gt;</description>
 <packageinstances>
 <packageinstance name="RK09D1130C3C"/>
@@ -2308,7 +2308,7 @@ package type OT</description>
 <packageinstance name="RS301111J00R"/>
 </packageinstances>
 </package3d>
-<package3d name="TACTILE_SWITCH_PTH_6.0MM" urn="urn:adsk.eagle:package:15707497/2" type="model" library_version="12">
+<package3d name="TACTILE_SWITCH_PTH_6.0MM" urn="urn:adsk.eagle:package:15707497/3" type="model" library_version="21" library_locally_modified="yes">
 <description>Momentary Switch (Pushbutton) - SPST - PTH, 6.0mm Square
 Normally-open (NO) SPST momentary switches (buttons, pushbuttons).
 Datasheet (B3F-1000)</description>
@@ -3717,52 +3717,52 @@ design rules under a new name.</description>
 <attribute name="SPICEPREFIX" value="R" x="310.896" y="-83.312" size="1.778" layer="27" display="off"/>
 <attribute name="VALUE" x="181.483" y="63.627" size="0.851" layer="27"/>
 </element>
-<element name="S1" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="154.94" y="58.42" smashed="yes">
+<element name="S1" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="154.94" y="58.42" smashed="yes">
 <attribute name="NAME" x="154.94" y="58.293" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S10" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="177.8" y="38.1" smashed="yes">
+<element name="S10" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="177.8" y="38.1" smashed="yes">
 <attribute name="NAME" x="177.8" y="38.481" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S11" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="154.94" y="27.94" smashed="yes">
+<element name="S11" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="154.94" y="27.94" smashed="yes">
 <attribute name="NAME" x="154.94" y="28.067" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S12" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="172.212" y="27.94" smashed="yes">
+<element name="S12" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="172.212" y="27.94" smashed="yes">
 <attribute name="NAME" x="172.212" y="28.321" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S13" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="125.73" y="5.08" smashed="yes">
+<element name="S13" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="125.73" y="5.08" smashed="yes">
 <attribute name="NAME" x="125.73" y="5.207" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S14" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="95.25" y="5.08" smashed="yes">
+<element name="S14" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="95.25" y="5.08" smashed="yes">
 <attribute name="NAME" x="95.25" y="5.207" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S15" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="60.96" y="5.08" smashed="yes">
+<element name="S15" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="60.96" y="5.08" smashed="yes">
 <attribute name="NAME" x="60.96" y="5.207" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S16" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="13.97" y="20.32" smashed="yes">
+<element name="S16" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="13.97" y="20.32" smashed="yes">
 <attribute name="NAME" x="13.97" y="20.447" size="0.762" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S17" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="13.97" y="5.08" smashed="yes">
+<element name="S17" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="13.97" y="5.08" smashed="yes">
 <attribute name="NAME" x="13.97" y="5.207" size="0.762" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S18" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="5.08" y="12.7" smashed="yes" rot="R90">
+<element name="S18" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="5.08" y="12.7" smashed="yes" rot="R90">
 <attribute name="NAME" x="4.953" y="12.7" size="0.762" layer="25" ratio="20" rot="R90" align="bottom-center"/>
 </element>
-<element name="S19" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="22.86" y="12.7" smashed="yes" rot="R90">
+<element name="S19" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="22.86" y="12.7" smashed="yes" rot="R90">
 <attribute name="NAME" x="22.86" y="12.827" size="0.762" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S2" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="166.37" y="58.42" smashed="yes">
+<element name="S2" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="166.37" y="58.42" smashed="yes">
 <attribute name="NAME" x="166.37" y="58.293" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S20" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="26.67" y="34.29" smashed="yes">
+<element name="S20" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="26.67" y="34.29" smashed="yes">
 <attribute name="NAME" x="26.67" y="34.671" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S21" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="26.67" y="46.99" smashed="yes">
+<element name="S21" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="26.67" y="46.99" smashed="yes">
 <attribute name="NAME" x="26.67" y="47.117" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S22" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="26.67" y="62.23" smashed="yes">
+<element name="S22" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="26.67" y="62.23" smashed="yes">
 <attribute name="NAME" x="26.67" y="62.357" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S23" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="26.67" y="74.93" smashed="yes">
+<element name="S23" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="26.67" y="74.93" smashed="yes">
 <attribute name="NAME" x="26.67" y="74.803" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
 <element name="S26" library="switch-omron" library_urn="urn:adsk.eagle:library:377" package="B3F-10XX" package3d_urn="urn:adsk.eagle:package:27496/1" value="" x="40.64" y="91.44" smashed="yes" rot="R180">
@@ -3774,25 +3774,25 @@ design rules under a new name.</description>
 <attribute name="POPULARITY" value="72" x="-53.34" y="204.47" size="1.778" layer="27" rot="R180" display="off"/>
 <attribute name="VALUE" x="43.688" y="96.52" size="1.27" layer="27" ratio="10" rot="R180"/>
 </element>
-<element name="S3" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="177.8" y="58.42" smashed="yes">
+<element name="S3" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="177.8" y="58.42" smashed="yes">
 <attribute name="NAME" x="177.8" y="58.293" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S4" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="187.96" y="52.705" smashed="yes">
+<element name="S4" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="187.96" y="52.705" smashed="yes">
 <attribute name="NAME" x="187.96" y="52.324" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S5" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="154.94" y="48.26" smashed="yes">
+<element name="S5" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="154.94" y="48.26" smashed="yes">
 <attribute name="NAME" x="154.94" y="48.133" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S6" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="166.37" y="48.26" smashed="yes">
+<element name="S6" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="166.37" y="48.26" smashed="yes">
 <attribute name="NAME" x="166.37" y="48.133" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S7" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="177.8" y="48.26" smashed="yes">
+<element name="S7" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="177.8" y="48.26" smashed="yes">
 <attribute name="NAME" x="177.8" y="48.133" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S8" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="154.94" y="38.1" smashed="yes">
+<element name="S8" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="154.94" y="38.1" smashed="yes">
 <attribute name="NAME" x="154.94" y="38.227" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
-<element name="S9" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/2" value="B3F-1052" x="166.37" y="38.1" smashed="yes">
+<element name="S9" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="TACTILE_SWITCH_PTH_6.0MM" package3d_urn="urn:adsk.eagle:package:15707497/3" value="B3F-1052" x="166.37" y="38.1" smashed="yes">
 <attribute name="NAME" x="166.37" y="38.227" size="0.6096" layer="25" ratio="20" align="bottom-center"/>
 </element>
 <element name="U1" library="SparkFun-IC-Power" library_urn="urn:adsk.eagle:library:526" package="SOT223" package3d_urn="urn:adsk.eagle:package:39069/1" value="LM1117-3.3V" x="17.78" y="53.34" smashed="yes" rot="R270">
@@ -3819,7 +3819,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="33.655" y="82.55" size="1.27" layer="25" rot="R270"/>
 <attribute name="VALUE" x="40.386" y="84.455" size="0.635" layer="27" rot="R270"/>
 </element>
-<element name="VR1" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="RK09D1130C3C" package3d_urn="urn:adsk.eagle:package:15664657/2" value="RK09D1130C2P" x="154.94" y="3.81" smashed="yes">
+<element name="VR1" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="RK09D1130C3C" package3d_urn="urn:adsk.eagle:package:15664657/3" value="RK09D1130C2P" x="154.94" y="3.81" smashed="yes">
 <attribute name="ALLIED_NUMBER" value="R1075936" x="195.58" y="-91.44" size="1.778" layer="27" display="off"/>
 <attribute name="ALLIED_PRICE-STOCK" value="https://www.alliedelec.com/alps-rk09d1130c2p/R1075936/" x="195.58" y="-91.44" size="1.778" layer="27" display="off"/>
 <attribute name="DESCRIPTION" value="Alps Electric 1 Gang Rotary Potentiometer with a 6 mm Dia. Shaft, 10k, +/-20%, 0.05W, Linear RK09D1130C2P" x="195.58" y="-91.44" size="1.778" layer="27" display="off"/>
@@ -3833,7 +3833,7 @@ design rules under a new name.</description>
 <attribute name="RS_PRICE-STOCK" value="http://uk.rs-online.com/web/p/products/1726272" x="195.58" y="-91.44" size="1.778" layer="27" display="off"/>
 <attribute name="VALUE" x="157.44" y="8.17" size="0.851" layer="27" align="center"/>
 </element>
-<element name="VR2" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="RK09D1130C3C" package3d_urn="urn:adsk.eagle:package:15664657/2" value="RK09D1130C2P" x="180.34" y="3.81" smashed="yes">
+<element name="VR2" library="msynth" library_urn="urn:adsk.eagle:library:15625405" package="RK09D1130C3C" package3d_urn="urn:adsk.eagle:package:15664657/3" value="RK09D1130C2P" x="180.34" y="3.81" smashed="yes">
 <attribute name="ALLIED_NUMBER" value="R1075936" x="236.22" y="-91.44" size="1.778" layer="27" display="off"/>
 <attribute name="ALLIED_PRICE-STOCK" value="https://www.alliedelec.com/alps-rk09d1130c2p/R1075936/" x="236.22" y="-91.44" size="1.778" layer="27" display="off"/>
 <attribute name="DESCRIPTION" value="Alps Electric 1 Gang Rotary Potentiometer with a 6 mm Dia. Shaft, 10k, +/-20%, 0.05W, Linear RK09D1130C2P" x="236.22" y="-91.44" size="1.778" layer="27" display="off"/>
@@ -5578,7 +5578,7 @@ design rules under a new name.</description>
 <signal name="USB_EN">
 <contactref element="IC1" pad="1"/>
 <contactref element="R5" pad="2"/>
-<contactref element="U4" pad="5"/>
+<contactref element="U4" pad="4"/>
 <wire x1="81.96" y1="32.97" x2="79.64" y2="32.97" width="0.1524" layer="1"/>
 <wire x1="79.64" y1="32.97" x2="77.05" y2="35.56" width="0.1524" layer="1"/>
 <wire x1="77.05" y1="35.56" x2="75.0688" y2="33.5788" width="0.1524" layer="1"/>
@@ -5587,11 +5587,10 @@ design rules under a new name.</description>
 <wire x1="34.163" y1="46.9138" x2="33.0708" y2="48.006" width="0.1524" layer="1"/>
 <wire x1="33.0708" y1="48.006" x2="33.0708" y2="76.16974375" width="0.1524" layer="1"/>
 <wire x1="36.72745625" y1="79.8264" x2="37.4946875" y2="79.8264" width="0.1524" layer="1"/>
-<wire x1="37.4946875" y1="79.8264" x2="37.6286" y2="79.9603125" width="0.1524" layer="1"/>
-<wire x1="37.6286" y1="79.9603125" x2="37.6286" y2="80.4586" width="0.1524" layer="1"/>
-<wire x1="37.6286" y1="80.4586" x2="39.4" y2="82.23" width="0.1524" layer="1"/>
 <wire x1="75.0688" y1="33.5788" x2="60.57825625" y2="33.5788" width="0.1524" layer="1"/>
 <wire x1="33.0708" y1="76.16974375" x2="36.72745625" y2="79.8264" width="0.1524" layer="1"/>
+<wire x1="37.9982875" y1="80.33" x2="39.4" y2="80.33" width="0.1524" layer="1"/>
+<wire x1="37.4946875" y1="79.8264" x2="37.9982875" y2="80.33" width="0.1524" layer="1"/>
 </signal>
 <signal name="USB_FAULT">
 <contactref element="IC1" pad="2"/>
@@ -6316,7 +6315,7 @@ design rules under a new name.</description>
 <contactref element="U2" pad="2"/>
 <contactref element="C26" pad="+"/>
 <contactref element="JP1" pad="2"/>
-<contactref element="U4" pad="4"/>
+<contactref element="U4" pad="5"/>
 <contactref element="OK1" pad="8"/>
 <contactref element="OK1" pad="7"/>
 <contactref element="C36" pad="1"/>
@@ -6361,8 +6360,9 @@ design rules under a new name.</description>
 <wire x1="184.15" y1="68.86" x2="184.15" y2="75.438" width="0.2032" layer="1"/>
 <wire x1="184.15" y1="75.438" x2="183.642" y2="75.946" width="0.2032" layer="1"/>
 <wire x1="183.642" y1="75.946" x2="183.388" y2="75.946" width="0.2032" layer="1"/>
-<wire x1="37.975" y1="76.083" x2="39.4" y2="77.508" width="0.3048" layer="1"/>
-<wire x1="39.4" y1="77.508" x2="39.4" y2="80.33" width="0.3048" layer="1"/>
+<wire x1="37.975" y1="76.083" x2="40.67" y2="78.778" width="0.3048" layer="1"/>
+<wire x1="40.67" y1="80.96" x2="40.67" y2="78.778" width="0.3048" layer="1"/>
+<wire x1="40.67" y1="80.96" x2="39.4" y2="82.23" width="0.3048" layer="1"/>
 <wire x1="130.937" y1="76.2" x2="38.092" y2="76.2" width="0.1524" layer="16"/>
 <wire x1="38.092" y1="76.2" x2="37.975" y2="76.083" width="0.1524" layer="16"/>
 </signal>
