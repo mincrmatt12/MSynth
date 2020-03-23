@@ -530,7 +530,7 @@ void usb::HostBase::channel_irq_in(usb::pipe_t idx) {
 				pipe_nak_defer_waiting |= (1 << idx);
 			}
 			else {
-				if (pipe_nak_delay & (1 << idx)) util::delay(2);
+				if (pipe_nak_delay & (1 << idx)) util::delay(3);
 				enable_channel(idx);
 			}
 		}
