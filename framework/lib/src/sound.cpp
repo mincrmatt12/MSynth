@@ -121,3 +121,20 @@ void sound::continuous_sample(int16_t *audio_data, uint32_t nsamples) {
 	// Enable I2S
 	LL_I2S_Enable(SPI2);
 }
+
+void sound::setup_double_buffer(int16_t *b1, int16_t *b2, uint32_t blocksize) {
+	// Setup DMA
+	LL_DMA_SetMode(DMA1, LL_DMA_STREAM_4, LL_DMA_MODE_CIRCULAR);
+	LL_DMA_EnableDoubleBufferMode(DMA1, LL_DMA_STREAM_4);
+	LL_DMA_SetMemorySize(DMA1, LL_DMA_STREAM_4, LL_DMA_MDATAALIGN_HALFWORD);
+	LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_4, (uint32_t)b1);
+	LL_DMA_SetMemory1Address(DMA1, LL_DMA_STREAM_4, (uint32_t)b2);
+	LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_4, blocksize*2); // left and right channels
+
+	// Enable interrupt
+	LL_DMA_EnableIT_TC(DMA1, LL_DMA_STREAM_4);
+
+	// Enable and start
+	LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_4);
+	LL_I2S_Enable(SPI2);
+}
