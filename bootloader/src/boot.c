@@ -1,7 +1,9 @@
 #include "boot.h"
 #include <stm32f4xx.h>
 #include <core_cm4.h>
+#include "stm32f4xx_ll_bus.h"
 #include "sys.h"
+#include "ui.h"
 
 void boot_app(const app_hdr *app) {
 	// TODO: load the BKP data correctly
@@ -12,7 +14,20 @@ void boot_app(const app_hdr *app) {
 	// Setup VTOR
 	SCB->VTOR = app->vectab;
 
-	// TODO: turn off the various peripherals
+	RCC->APB1RSTR |= RCC_APB1RSTR_USART3RST | RCC_AHB1RSTR_GPIODRST | RCC_AHB1RSTR_GPIOFRST;
+	asm volatile ("nop");
+	asm volatile ("nop");
+	asm volatile ("nop");
+	asm volatile ("nop");
+	asm volatile ("nop");
+	asm volatile ("nop");
+	asm volatile ("nop");
+	asm volatile ("nop");
+	asm volatile ("nop");
+	asm volatile ("nop");
+	asm volatile ("nop");
+	asm volatile ("nop");
+	RCC->APB1RSTR &= ~(RCC_APB1RSTR_USART3RST | RCC_AHB1RSTR_GPIODRST | RCC_AHB1RSTR_GPIOFRST);
 	
 	uint32_t topofstack = app->topofstack;
 	uint32_t entry      = app->entry;
