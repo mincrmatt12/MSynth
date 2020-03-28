@@ -25,13 +25,13 @@ namespace sound {
 	void set_mute(bool mute);
 
 	// Send out data in a single block.
-	void single_shot(uint16_t *audio_data, uint32_t nsamples);
+	void single_shot(int16_t *audio_data, uint32_t nsamples);
 
 	// Send out the audio data in a loop until cancelled.
-	void continuous_sample(uint16_t *audio_data, uint32_t nsamples);
+	void continuous_sample(int16_t *audio_data, uint32_t nsamples);
 
 	// Set up double buffered output mode
-	void setup_double_buffer(uint16_t *audio_data_1, uint16_t *audio_data_2, uint32_t blocksize);
+	void setup_double_buffer(int16_t *audio_data_1, int16_t *audio_data_2, uint32_t blocksize);
 
 	// Is the current output done? Only valid in single_shot mode
 	bool finished_sending();

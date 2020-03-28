@@ -44,7 +44,7 @@ void sound::init() {
 
 		init.AudioFreq = 44100U; // 44.1 kHz
 		init.ClockPolarity = LL_I2S_POLARITY_LOW;
-		init.DataFormat = LL_I2S_DATAFORMAT_16B_EXTENDED;
+		init.DataFormat = LL_I2S_DATAFORMAT_16B;
 		init.Mode = LL_I2S_MODE_MASTER_TX;
 		init.MCLKOutput = LL_I2S_MCLK_OUTPUT_ENABLE;
 		init.Standard = LL_I2S_STANDARD_PHILIPS;
@@ -78,12 +78,13 @@ void sound::set_mute(bool mute) {
 	(mute ? LL_GPIO_SetOutputPin : LL_GPIO_ResetOutputPin)(GPIOG, LL_GPIO_PIN_9);
 }
 
-void sound::single_shot(uint16_t *audio_data, uint32_t nsamples) {
+void sound::single_shot(int16_t *audio_data, uint32_t nsamples) {
 	// Setup DMA
 	LL_DMA_SetMode(DMA1, LL_DMA_STREAM_4, LL_DMA_MODE_NORMAL);
 	LL_DMA_SetMemorySize(DMA1, LL_DMA_STREAM_4, LL_DMA_MDATAALIGN_HALFWORD);
 	LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_4, (uint32_t)audio_data);
 	LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_4, nsamples*2); // left and right channels
+	LL_DMA_DisableDoubleBufferMode(DMA1, LL_DMA_STREAM_4);
 
 	// Start sending data
 	LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_4);
@@ -105,7 +106,9 @@ void sound::stop_output() {
 	LL_I2S_Disable(SPI2);
 }
 
-void sound::continuous_sample(uint16_t *audio_data, uint32_t nsamples) {
+void sound::continuous_sample(int16_t *audio_data, uint32_t nsamples) {
+	LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_4);
+	LL_DMA_DisableDoubleBufferMode(DMA1, LL_DMA_STREAM_4);
 	// Setup DMA
 	LL_DMA_SetMode(DMA1, LL_DMA_STREAM_4, LL_DMA_MODE_CIRCULAR);
 	LL_DMA_SetMemorySize(DMA1, LL_DMA_STREAM_4, LL_DMA_MDATAALIGN_HALFWORD);
