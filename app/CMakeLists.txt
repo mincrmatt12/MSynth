@@ -6,11 +6,11 @@ include(${CMAKE_CURRENT_LIST_DIR}/../framework/build.cmake)  # point at the righ
 # setup an APP
 add_app(
 	# folder /target name
-	main_app
+	stream_player
 	# name
-	"MSynth"
+	"SD Player"
 	# appID
-	"FTsc"
+	"Sply"
 	# appSIZE (kib)
 	128
 	# flags
@@ -24,9 +24,9 @@ add_app(
 # setup an upload target
 create_uploader(
 	# name of taregt (to use with make)
-	upload
+	upload_streamer
 	# name of app
-	main_app
+	stream_player
 	# sector
 	3
 )
