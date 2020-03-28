@@ -677,7 +677,7 @@ sd::access_status sd::read(uint32_t address, void * result_buffer, uint32_t leng
 
 	// Begin transferring
 	
-	while (!(SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DATAEND | SDIO_STA_STBITERR))) {
+	while (!(SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DATAEND | SDIO_STA_STBITERR)) && SDIO->STA & SDIO_STA_RXACT) {
 		// Read lots of FIFO if possible
 		while (SDIO->STA & SDIO_STA_RXFIFOHF) {
 			*out_buffer++ = SDIO->FIFO; 
