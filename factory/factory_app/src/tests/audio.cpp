@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stm32f4xx.h>
 
-uint16_t sample_buffer[102]; // Forced into RAM
+int16_t sample_buffer[102]; // Forced into RAM
 
 void AudioTest::start() {
 	uiFnt = fs::open("fonts/djv_16.fnt");
@@ -18,8 +18,8 @@ void AudioTest::start() {
 
 	// Set the buffer going
 	for (int i = 0, j = 0; i < 65536; i += 1310, j += 2) { // create a semi-accurate 440 hz wave
-		sample_buffer[j] = i;
-		sample_buffer[j+1] = (i << 1) & 0xFFFF;
+		sample_buffer[j] = (i - 32768);
+		sample_buffer[j+1] = ((i - 32768) * 2);
 	}
 
 	// Set the audio out
