@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include <stdio.h>
+#include <stm32f4xx_ll_dma.h>
 
 extern usb::Host<usb::StaticStateHolder, usb::MidiDevice> usb_host;
 
@@ -14,7 +15,7 @@ namespace {
 	bool note_on = false;
 	uint16_t freq = 0;
 	uint16_t amplitude = 0;
-	uint16_t sample_buffer[1024] = {0};
+	int16_t sample_buffer[1024] = {0};
 	bool change = false;
 }
 
@@ -155,29 +156,35 @@ void UsbTest::got_midi(uint8_t *buf, size_t len) {
 	if (len == 3) {
 		change = true;
 		if (buf[0] == 0x90 && buf[2]) {
-			amplitude = (uint16_t)(buf[2]) * (65535 / 0x7f);
-			freq = (uint16_t)(std::pow(2.0f, (buf[1] - 69) / 12.0f) * 440.0f);
+			amplitude = (uint16_t)(buf[2]) * (9830 / 0x7f);
+			freq = (uint16_t)std::round(std::pow(2.0f, (buf[1] - 69.0f) / 12.0f) * 440.0f);
 			note_on = true;
 		}
 		else if (buf[0] == 0x80) {
-			note_on = false;
+			if (freq == (uint16_t)std::round(std::pow(2.0f, (buf[1] - 69.0f) / 12.0f) * 440.0f)) {
+				note_on = false;
+			}
+			else return;
 		}
 		else return;
 		if (note_on) {
+			LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_4);
+
 			int length = 44100 / freq;
-			int offset = amplitude / length;
-			uint16_t b = 0;
+			float offset = amplitude / length;
+			float b = -amplitude / 2;
 			for (int i = 0; i < length; ++i) {
 				sample_buffer[i*2] = b;
 				sample_buffer[i*2 + 1] = b;
-				b += offset;
+				b += offset / 2;
 			}
 
 			sound::continuous_sample(sample_buffer, length);
 		}
 		else {
-			memset(sample_buffer, 0, 128);
-			sound::continuous_sample(sample_buffer, 3);
+			LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_4);
+			memset(sample_buffer, 0, sizeof(sample_buffer));
+			sound::continuous_sample(sample_buffer, 256);
 		}
 	}
 }
