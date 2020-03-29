@@ -2,6 +2,7 @@
 // sound.h -- routines for setting up the I2S peripheral
 //
 // This sets up both I2S for output; with the RX DMA and RXNE interrupt set
+// RX DMA is DMA1_Stream4
 //
 // There are some basic routines present for outputting data.
 // These include:

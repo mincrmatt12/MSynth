@@ -218,14 +218,11 @@ retry:
 	while (1) {
 		util::delay(1);
 		auto current = (float)periph::ui::get(periph::ui::knob::VOLUME);
-		current = (current / 4096.0) * 22;
-		current += 1;
+		auto target_max = (std::pow((4096 - current) / 4096.0f, 2.5f) * 32768.f);
+		current = std::max(1.f, std::min(32767.0f, 32768.f / target_max));
 
 		auto old = voltagediv;
 		voltagediv = std::round(current);
-		if (old != voltagediv) {
-			output("setting vdiv=%d", voltagediv);
-		}
 	}
 
 	return 0;

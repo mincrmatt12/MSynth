@@ -17,6 +17,7 @@ The various subprojects are:
 - `factory`: Test application for verifying board accuracy, component quality and basic unit tests.
 - `framework`: Common code and build setup for all applications (clock setup, peripheral access code, filesystem code, etc.)
 - `fstool`: Tools for generating and interacting with filesystem images
+- `app`: Various primary apps are placed here. The most important one is `main_app`, which is the actual synthesizer core.
 
 ## Licensing
 
