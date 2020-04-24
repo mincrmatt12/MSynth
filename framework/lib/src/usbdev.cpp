@@ -157,3 +157,9 @@ void usb::MidiDevice::set_callback(EventCallback cb) {
 	}
 	this->cb = cb;
 }
+
+bool usb::HID::handles(uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol) {
+	return false;
+}
+
+bool usb::HID::init(uint8_t ep0_mps, uint8_t bClass, uint8_t bSubClass, uint8_t bProtocol, uint8_t* config_descriptor, usb::HostBase *hb) {return false;}
