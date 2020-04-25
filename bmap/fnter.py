@@ -48,6 +48,9 @@ def get_character_as_bool_array(c):
     result = []
     buffercopy = bitmap.buffer
 
+    if bitmap.pitch == 0 or bitmap.rows == 0 :
+        return [[]]
+
     for i in range(0, bitmap.rows * bitmap.pitch, bitmap.pitch):
         arr = []
         seen = []

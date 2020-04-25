@@ -165,6 +165,10 @@ with open(sys.argv[1], "rb") as f:
         print(f" Glyph : {wid}x{hgt} {'wordlen' if compressed else 'stride'} = {third}")
         print(f" Metrics : advance = {advance}, bearing = [{bX}, {bY}]")
 
+        if wid == 0 or hgt == 0:
+            print(" No bitmap")
+            continue
+
         if not compressed:
             data = decode_uncompressed(wid, hgt, third, datablb[offset+6:offset+6+(third*hgt)])
 
