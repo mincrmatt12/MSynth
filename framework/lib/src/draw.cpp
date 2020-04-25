@@ -192,4 +192,11 @@ namespace draw {
 			memset(&framebuffer_data[y][x0], color, x1 - x0);
 		}
 	}
-};
+
+	void blit(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t * data) {
+		for (int i = 0; i < h; ++i) {
+			memcpy(&framebuffer_data[y++][x], data, w);
+			data += w;
+		}
+	}
+}
