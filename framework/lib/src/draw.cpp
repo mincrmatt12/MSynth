@@ -189,9 +189,7 @@ namespace draw {
 
 	void rect(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color) {
 		for (int y = y0; y < y1; ++y) {
-			for (int x = x0; x < x1; ++x) {
-				framebuffer_data[y][x] = color;
-			}
+			memset(&framebuffer_data[y][x0], color, x1 - x0);
 		}
 	}
 };
