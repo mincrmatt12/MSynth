@@ -182,6 +182,27 @@ namespace draw {
 		return pen;
 	}
 
+	uint16_t text_size(const char * text, const void * font_) {
+		uint16_t pen = 0;
+		const Font& font = *(const Font *)(font_);
+
+		uint8_t c, c_prev = 0;
+		while ((c = *(text++)) != 0) {
+			if (c_prev != 0 && font.is<Font::HasKern>()) {
+				Kern dat;
+				if (font.search_kern(c_prev, c, dat)) {
+					pen += dat.offset;
+				}
+			}
+			c_prev = c;
+			if (font.metrics_offset(c) == 0) continue; // unknown char
+			const auto& metrics = *font.metrics(c);
+			pen += metrics.advance;
+		}
+
+		return pen;
+	}
+
 	// DRAWING ROUTINES
 	void fill(uint8_t color) {
 		memset(framebuffer_data, color, sizeof(framebuffer_data));

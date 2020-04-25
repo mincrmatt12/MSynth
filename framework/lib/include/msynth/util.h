@@ -5,6 +5,10 @@
 #include <type_traits>
 #include <utility>
 
+#define MSYNTH_APPCODE_MISSINGRSRC 0xc001
+#define MSYNTH_APPCODE_MISSINGHW 0xc002
+#define MSYNTH_APPCODE_ERROR 0xc000
+
 namespace util {
 	template<int N, int D>
 	struct LowPassFilter {
