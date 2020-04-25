@@ -16,4 +16,9 @@ namespace draw {
 
 	// Draw text to the LCD
 	uint16_t /* end pos */ text(uint16_t x, uint16_t y, const char* text, const void * font, uint8_t color);
+
+	uint16_t text_size(const char *text, const void * font);
+
+	// Copy a block of rectangular pixels to a location on the display.
+	void blit(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const uint8_t * data);
 }
