@@ -2,6 +2,8 @@
 
 #include <msynth/periphcfg.h>
 
+MsUSB ms::in::usb_host;
+
 void ms::in::init() {
 	// Start periph UI
 	periph::setup_ui();
