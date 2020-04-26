@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <type_traits>
+#include <msynth/periphcfg.h>
 
 namespace ms::evt {
 	// All events must have a const static public member named "id" which is a unique integer.
@@ -37,6 +38,9 @@ namespace ms::evt {
 		dispatch(&evt, Event::id);
 	}
 
+	// Internal dispatcher
+	void dispatch(const void *opaque, int id);
+
 	// Helper declaration to convert parameter pack to a bitmask of events
 	template<typename ...Events>
 	constexpr static inline std::enable_if_t<std::conjunction_v<is_event_v<Events>...>, uint32_t> events_to_bitmask = (Events::id | ...);
@@ -47,16 +51,108 @@ namespace ms::evt {
 		virtual void handle(const Event& evt) = 0;
 	};
 
+	// Advanced event handling, allows for custom opaque processing. EventHandler does this for you.
+	// All event handlers must be convertable to this.
+	struct OpaqueHandler {
+		friend void ::ms::evt::dispatch(const void *, int);
+
+		OpaqueHandler();
+		~OpaqueHandler();
+		OpaqueHandler(const OpaqueHandler& other) = delete;
+		OpaqueHandler(OpaqueHandler&& other) {};
+
+	protected:
+		virtual void dispatch(const void *opaque, int id) = 0;
+	};
+
 	// Base event handler type
 	template<typename ...ListeningFor>
-	struct EventHandler : public callback_holder<ListeningFor>... {
-		// TODO: add the correct friend definitions so the private dispatch is available
-
+	struct EventHandler : OpaqueHandler, protected callback_holder<ListeningFor>... {
 		static const inline uint32_t bitmask = events_to_bitmask<ListeningFor...>;
+
 	private:
-		void dispatch(const void *opaque, int id) {
+		void dispatch(const void *opaque, int id) override {
 			if (!((1 << id) & bitmask)) return;
 			((id == ListeningFor::id && (handle(*reinterpret_cast<const ListeningFor *>(opaque)), true)) || ...);
 		}
+	};
+
+	// EVENT DEFINITIONS
+	
+	struct TouchEvent {
+		const static inline int id = 1;
+
+		int16_t x, y, pressure;
+	};
+
+	struct KeyEvent {
+		const static inline int id = 2;
+		
+		bool down; // false for up
+		periph::ui::button key;	// todo: expandability
+	};
+
+	struct VolumeEvent {
+		const static inline int id = 3;
+
+		int8_t volume; // this is already ran through a nice low-pass filter, and is already set elsewhere, but it can be useful to show it on screen.
+	};
+
+	struct MidiEvent {
+		// These are _parsed_ events -- and are importantly source agnostic (specifically, they don't care between USB/hw uart)
+
+		const static inline int id = 4;
+
+		enum {
+			TypeNoteOn,
+			TypeNoteOff,
+			TypePitchBend,
+			TypeAftertouch,
+			TypeControl,
+			TypeProgramChange,
+			TypeSysex
+		} type;
+		
+		struct NoteEvt {
+			uint8_t note;
+			uint8_t velocity;
+		};
+
+		struct ControllerEvt {
+			uint8_t control;
+			uint8_t value;
+		};
+
+		struct AftertouchEvt {
+			const static inline uint8_t All = 0xff;
+
+			uint8_t note;
+			uint8_t amount;
+		};
+		
+		struct ProgramChangeEvt {
+			uint8_t pc;
+		};
+
+		struct PitchBendEvt {
+			int16_t amount;
+		};
+
+		struct SysExEvt {
+			std::size_t size;
+			char * buf;
+		};
+
+		union {
+			NoteEvt note;
+			ControllerEvt controller;
+			AftertouchEvt aftertouch;
+			PitchBendEvt pitchbend;
+			ProgramChangeEvt programchange;
+			SysExEvt sysex;
+		};
+	};
+
+	struct DeviceStateEvent {
 	};
 }
