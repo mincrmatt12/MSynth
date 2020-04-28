@@ -7,10 +7,10 @@ namespace ms::evt {
 
 	OpaqueHandler *handlers[handler_count] = {};
 
-	OpaqueHandler::OpaqueHandler() {
+	void add(OpaqueHandler *handler) {
 		for (int i = 0; i < handler_count; ++i) {
 			if (!handlers[i]) {
-				handlers[i] = this;
+				handlers[i] = handler;
 				return;
 			}
 		}
@@ -18,9 +18,9 @@ namespace ms::evt {
 		// should never happen -- error handler here
 	}
 
-	OpaqueHandler::~OpaqueHandler() {
+	void remove(OpaqueHandler *handler) {
 		for (int i = 0; i < handler_count; ++i) {
-			if (handlers[i] == this) {
+			if (handlers[i] == handler) {
 				handlers[i] = nullptr;
 				return;
 			}
