@@ -15,13 +15,10 @@ namespace ms::ui {
 		int16_t x, y, r;
 	};
 
-	struct MultiBox {
-		size_t amount;
-		Box boxes[];
-	};
-
-
 	bool inside(int16_t x, int16_t y, const Box& bound);
 	bool inside(int16_t x, int16_t y, const Circle& bound);
-	bool inside(int16_t x, int16_t y, const MultiBox& bound);
+
+	// These forms allow for checking bounding box stuff.
+	bool inside(const Box& overlap, const Box& bound);
+	bool inside(const Box& overlap, const Circle& bound);
 }
