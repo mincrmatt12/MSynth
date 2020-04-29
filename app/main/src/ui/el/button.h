@@ -26,9 +26,9 @@ namespace ms::ui::element {
 			if (evt.pressure == evt::TouchEvent::PressureRemovedTouch && flag(FlagPressed)) {
 				toggle_flag(FlagPressed);
 				mark_dirty();
+				cb();
 			}
 			if (evt.pressure != evt::TouchEvent::PressureRemovedTouch && !flag(FlagPressed)) {
-				cb();
 				toggle_flag(FlagPressed);
 				mark_dirty();
 				return true;
