@@ -29,15 +29,28 @@ namespace ms::in {
 		auto is_pressed = lcd::poll(raw_x, raw_y);
 
 		// TODO: apply correction coeffs
+		
+		if (raw_x < 1350) raw_x = 1450;
+		raw_x -= 1350;
+		raw_x /= ((30000 - 1350) / 480);
+
+		if (raw_x > 480) raw_x = 480;
+
+		if (raw_y < 2940) raw_y = 2940;
+		if (raw_y > 29400) raw_y = 29400;
+
+		raw_y = 29400 - raw_y;
+		raw_y /= ((29400 - 2940) / 272);
+
+		if (raw_y > 272) raw_y = 272;
+
 		// TODO: get pressure
 		int16_t pressure = is_pressed ? 255 : 0;
 
 		if (!is_pressed && fall_edge) {
 			// emit a touch released event
 			evt::TouchEvent evt{static_cast<int16_t>(raw_x), static_cast<int16_t>(raw_y), evt::TouchEvent::PressureRemovedTouch};
-			//evt::dispatch(evt);
-			puts("fall");
-
+			evt::dispatch(evt);
 			fall_edge = false;
 		}
 
@@ -45,7 +58,7 @@ namespace ms::in {
 
 		if (is_pressed) {
 			evt::TouchEvent evt{static_cast<int16_t>(raw_x), static_cast<int16_t>(raw_y), pressure};
-			printf("%d %d %d\n", evt.x, evt.y, evt.pressure);
+			evt::dispatch(evt);
 		}
 	}
 }
