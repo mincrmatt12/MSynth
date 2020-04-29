@@ -5,16 +5,24 @@
 #include <stddef.h>
 
 namespace ms::ui {
-	// Inside function -- specialized for various types
-		
+	// Various geometry primitives
 	struct Box {
-		int16_t x, y, w, h;
+		constexpr Box(int16_t x, int16_t y, int16_t w, int16_t h) : x(x), y(y), w(w), h(h) {}
+		constexpr Box(int16_t x, int16_t y) : x(x), y(y) {}
+
+		int16_t x, y, w=0, h=0;
 	};
 
 	struct Circle {
-		int16_t x, y, r;
+		constexpr Circle(int16_t x, int16_t y, int16_t radius) : x(x), y(y), r(radius) {}
+
+		int16_t x, y;
+		union {
+			int16_t r, w, h; // These are used for compatibility with Box.
+		};
 	};
 
+	// Inside function -- specialized for various types
 	bool inside(int16_t x, int16_t y, const Box& bound);
 	bool inside(int16_t x, int16_t y, const Circle& bound);
 

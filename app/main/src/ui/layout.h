@@ -42,6 +42,18 @@
 // actually handled an event. This will probably see more use in nested LayoutManagers, as they are perfectly capable of working inside of components themselves (although the relevant sizing concerns
 // may limit their usefulness; although relevant scaling is always a potential solution. If the class is lacking some critical feature, you can also short circuit its handling and add your own
 // clauses just with an if or or.
+//
+// We expect all elements to:
+// 	- have a publicly visible bitfield called "flags" where bit 0 is the dirty flag
+// 	- for all handled event types:
+// 		- have a function of the form bool Element::handle(const Event& evt, const Element::LayoutParams& lp)
+// 		  where the return code indicates if the event should be sent to other elements.
+// 		- have the appropriate traits set in the LayoutTraits typedef
+//  - have a publicly visible typedef for LayoutParams
+//      - for it to work with the *_list generators, it also should be "re-initable" with a constructor of the form:
+//        LayoutParams(const Box& fill, LayoutParams&& old)
+//        which uses the settings (if any) on the old parameter and uses them to construct an appropriate instance
+//        to fill the region `fill`
 
 #include <tuple> 
 #include <type_traits>
@@ -72,13 +84,17 @@ namespace ms::ui::layout {
 
 		// This trait tells the layout system that there's a bounding box (called bbox) which has x and y parameters which lets events passed on get put into the local
 		// coordinate system. This is essential for nested layoutmanagers. It's also auto-added if you use an Inside with the default bbox.
-		struct HasAdjustableBBox : MouseTrait {};
+		struct HasAdjustableBBox {
+		};
+
+		// Helper type; automatically inherits from MouseTrait too
+		struct HasAdjustableBBoxMixin : HasAdjustableBBox, MouseTrait {};
 
 		// This is the more customizable form of the Inside trait, which can be specified multiple times
 		// and allows you to customize the location of the member to check (it's effectively an easy form for the function 
 		// handler)
 		template<auto Pointer, bool IsBBOX=false>
-		struct BasicInside : std::conditional_t<IsBBOX && /* TODO check xy */ true, HasAdjustableBBox, MouseTrait> {
+		struct BasicInside : std::conditional_t<IsBBOX && /* TODO check xy */ true, HasAdjustableBBoxMixin, MouseTrait> {
 			typedef decltype(Pointer) MemberPointer;
 			constexpr static MemberPointer pointer = Pointer;
 		};
@@ -117,10 +133,23 @@ namespace ms::ui::layout {
 		// and it is true, regardless of other traits, the event will be sent. Useful for "press-and-drag" type situations.
 		// If there are multiple of these, they are logically _OR_'d together, as opposed to ANDed like usual.
 		template<typename Trait>
-		struct ForceIf {
-			typedef Trait ContainedTrait;
+		struct ForceIf : std::conditional_t<std::is_base_of_v<KeyTrait, Trait>, KeyTrait, MouseTrait>{
 		};
 
+		// This trait is used by the auto-layout helpers (make_vertical_list, etc.) to specify that vertical/horizontal offsets can be deduced
+		// from a LayoutParams using the given FPtr. If this isn't present, HasAdjustableBBox will be used as a fallback to specify that the `bbox`
+		// can be used for positioning (although the offset will be grabbed from w, h, x and y).
+		template<auto FPtr>
+		struct HasCalculatableSizeOffsets {
+			// This should be a const compatible function pointer.
+			constexpr static inline auto callback = FPtr;
+		};
+
+		// Logically ORs the parameters. Can be used for e.g. multiple click regions.
+		template<typename ...Bases>
+		struct Disjunction : std::conditional_t<std::disjunction_v<std::is_base_of_v<KeyTrait, Bases>...>, KeyTrait, MouseTrait> {};
+
+		// Helper type traits to check templated trait types.
 		template<typename Check, template <typename, typename...> typename Template>
 		struct is_trait_instance : std::false_type {};
 
@@ -138,9 +167,10 @@ namespace ms::ui::layout {
 	// template arguments. These arguments are all part of the `traits` namespace.
 	template<typename ...Traits>
 	struct LayoutTraits {
-		constexpr static inline bool uses_mouse = std::disjunction_v<std::is_base_of_v<traits::MouseTrait, Traits>...>;
-		constexpr static inline bool uses_key = std::disjunction_v<std::is_base_of_v<traits::KeyTrait, Traits>...>;
-		constexpr static inline bool has_adjustable_bbox = std::disjunction_v<std::is_base_of_v<traits::HasAdjustableBBox, Traits>...>;
+		constexpr static inline bool uses_mouse = std::disjunction_v<std::is_base_of<traits::MouseTrait, Traits>...>;
+		constexpr static inline bool uses_key = std::disjunction_v<std::is_base_of<traits::KeyTrait, Traits>...>;
+		constexpr static inline bool has_adjustable_bbox = std::disjunction_v<std::is_base_of<traits::HasAdjustableBBox, Traits>...>;
+		constexpr static inline bool is_focusable = std::disjunction_v<std::is_base_of<traits::FocusEnable, Traits>...>;
 
 		template<typename Event, typename UI, typename Child>
 		inline static bool use(const Event& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
@@ -150,10 +180,33 @@ namespace ms::ui::layout {
 
 			if (((std::is_base_of_v<event_to_trait_base_t<Event>, Traits> && 
 				  traits::is_trait_instance<Traits, traits::ForceIf>::value && 
-				  check(Traits::ContainedTrait(), evt, parent, child, params)) || ...)) return true;
+				  check(Traits(), evt, parent, child, params)) || ...)) return true;
 
 			// Now check all the other clauses
-			return !((std::is_base_of_v<event_to_trait_base_t<Event>, Traits> && !check(Traits(), evt, parent, child, params)) || ...);
+			return !((std::is_base_of_v<event_to_trait_base_t<Event>, Traits> && !traits::is_trait_instance<Traits, traits::ForceIf>::value && !check(Traits(), evt, parent, child, params)) || ...);
+		}
+
+		template<typename LayoutParams>
+		static constexpr bool get_positioning_info(const LayoutParams& lp, int16_t& origin_x, int16_t& origin_y, int16_t &width, int16_t& height) {
+			if constexpr (std::disjunction_v<traits::is_trait_instance_r<Traits, traits::HasCalculatableSizeOffsets>::value...>) {
+				// Use the relevant callbacks
+				((traits::is_trait_instance_r<Traits, traits::HasCalculatableSizeOffsets>::value && ((lp.*Traits::callback)(origin_x, origin_y, width, height), true)) || ...);
+				return true;
+			}
+			else {
+				// Otherwise, try falling back to BBOX
+				if constexpr (has_adjustable_bbox) {
+					origin_x = lp.bbox.x;
+					origin_y = lp.bbox.y;
+					width = lp.bbox.w;
+					height = lp.bbox.h;
+					return true;
+				}
+				else {
+					// Fail
+					return false;
+				}
+			}
 		}
 	
 	private:
@@ -169,7 +222,7 @@ namespace ms::ui::layout {
 		inline static std::enable_if_t<traits::is_trait_instance_r<T, traits::BasicInside>::value, bool> 
 			check(const T&, const evt::TouchEvent& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
 
-			if constexpr (std::is_same_v<pointed_class_type<typename T::MemberPointer>::clazz, Child>) {
+			if constexpr (std::is_same_v<typename pointed_class_type<typename T::MemberPointer>::clazz, Child>) {
 				return inside(evt.x, evt.y, child.*T::pointer);
 			}
 			else {
@@ -192,6 +245,16 @@ namespace ms::ui::layout {
 			check(const T&, const Event& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
 
 			return (child.*T::pointer)(evt, parent, child, params);
+		}
+
+		template<typename Event, typename UI, typename Child, typename... Inner>
+		inline static bool check(const traits::Disjunction<Inner...>, const Event& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
+			return (check(Inner{}, evt, parent, child, params) || ...);
+		}
+
+		template<typename Event, typename UI, typename Child, typename Inner>
+		inline static bool check(const traits::ForceIf<Inner>, const Event& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
+			return check(Inner{}, evt, parent, child, params);
 		}
 
 		template<typename T, typename Event, typename UI, typename Child>
@@ -239,48 +302,60 @@ namespace ms::ui::layout {
 		}
 
 		template<typename Event, size_t... Is>
-		bool dispatch(const Managing& mg, const Event& evt, std::index_sequence<Is...>) const {
+		bool dispatch(Managing& mg, const Event& evt, std::index_sequence<Is...>) const {
 			// Separated because of Is b.s.
 
 			// This function has a fairly simple responsibility; 	
 			return (((std::is_same_v<Event, evt::TouchEvent> ? Children::LayoutTraits::uses_mouse : Children::LayoutTraits::uses_key) && 
 			          Children::LayoutTraits::use(evt, mg, mg.*std::get<Is>(children), std::get<Is>(layout_params)) && 
-			          mg.*std::get<Is>(children).handle(mangle<Children, Is>(evt), std::get<Is>(layout_params))) || ...);
+			          (mg.*std::get<Is>(children)).handle(mangle<Children, Is>(evt), std::get<Is>(layout_params))) || ...);
 		}
 
-		template<typename Child, size_t Index>
-		std::enable_if_t<Child::LayoutTraits::has_adjustable_bbox> redraw_impl(Child& child, const Box& bound, const typename Child::LayoutParams& unadjust) {
+		template<typename Child>
+		std::enable_if_t<Child::LayoutTraits::has_adjustable_bbox> redraw_impl(Child& child, const Box& bound, const typename Child::LayoutParams& unadjust) const {
 			typename Child::LayoutParams adjusted = unadjust;
-			adjusted.x += bound.x;
-			adjusted.y += bound.y;
+			adjusted.bbox.x += bound.x;
+			adjusted.bbox.y += bound.y;
 			child.draw(adjusted);
 		}
 
-		template<typename Child, size_t Index>
-		inline std::enable_if_t<!Child::LayoutTraits::has_adjustable_bbox> redraw_impl(Child& child, const Box& bound, const typename Child::LayoutParams& unadjust) {
+		template<typename Child>
+		inline std::enable_if_t<!Child::LayoutTraits::has_adjustable_bbox> redraw_impl(Child& child, const Box& bound, const typename Child::LayoutParams& unadjust) const {
 			child.draw(unadjust);
 		}
 
 		template<size_t... Is>
-		void redraw(const Managing &mg, const Box& bound, std::index_sequence<Is...>) const {
+		void redraw(Managing &mg, const Box& bound, std::index_sequence<Is...>) const {
 			// TODO: update the "fake" draw-stack (globals for bounds checking)
 
 			// Over all children...
-			(((mg.*std::get<Is>(children).flags & 1 /* dirty flag is always the first one */) && (
-				/* reset the dirty flag */ mg.*std::get<Is>(children).flags ^= 1,
-				/* adjust bbox and call draw */ redraw_impl<Children, Is>(mg.*std::get<Is>(children), bound, std::get<Is>(layout_params)),
+			((((mg.*std::get<Is>(children)).flags & 1 /* dirty flag is always the first one */) && (
+				/* reset the dirty flag */ (mg.*std::get<Is>(children)).flags ^= 1,
+				/* adjust bbox and call draw */ redraw_impl(mg.*std::get<Is>(children), bound, std::get<Is>(layout_params)),
+				/* keep iterating */ false
+			)) || ...);
+		}
+
+		template<size_t... Is>
+		void redraw(Managing &mg, std::index_sequence<Is...>) const {
+			// TODO: update the "fake" draw-stack (globals for bounds checking)
+
+			// Over all children...
+			((((mg.*std::get<Is>(children)).flags & 1 /* dirty flag is always the first one */) && (
+				/* reset the dirty flag */ (mg.*std::get<Is>(children)).flags ^= 1,
+				/* adjust bbox and call draw */(mg.*std::get<Is>(children)).draw(std::get<Is>(layout_params)),
 				/* keep iterating */ false
 			)) || ...);
 		}
 
 	public:
 		// Properly dispatch an event to the contained children based on their traits.
-		bool handle(const Managing& mg, const evt::KeyEvent& evt) const {
+		bool handle(Managing& mg, const evt::KeyEvent& evt) const {
 			return dispatch(mg, evt, ChildrenIter{});
 		}
 	
 		// Properly dispatch an event to the contained children based on their traits.
-		bool handle(const Managing& mg, const evt::TouchEvent& evt) const {
+		bool handle(Managing& mg, const evt::TouchEvent& evt) const {
 			return dispatch(mg, evt, ChildrenIter{});
 		}
 
@@ -290,8 +365,14 @@ namespace ms::ui::layout {
 		// Note that unlike the convention for event handling (where elements have their own coordinate scheme) the coordinates presented here
 		// are global. The reasoning is that it makes it easier for elements to draw like this (and that the draw:: functions don't need to add
 		// coordinates themselves, which makes them slightly more optimized for when the coordinates are always zero.
-		void redraw(const Managing& mg, const Box &bound) const {
+		void redraw(Managing& mg, const Box &bound) const {
 			redraw(mg, bound, ChildrenIter{});
+		}
+
+		// Redraw the entire layout without adjusting bounding boxes. GCC has a hard time removing the case when this is constant, so this
+		// is provided for optimization purposes. We assume here the draw:: globals are set properly (i.e. they won't obstruct us)
+		void redraw(Managing& mg) const {
+			redraw(mg, ChildrenIter{});
 		}
 	};
 
