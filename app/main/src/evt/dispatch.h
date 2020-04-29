@@ -71,7 +71,7 @@ namespace ms::evt {
 	private:
 		void dispatch(const void *opaque, int id) override {
 			if (!((1 << id) & bitmask)) return;
-			((id == ListeningFor::id && (handle(*reinterpret_cast<const ListeningFor *>(opaque)), true)) || ...);
+			((id == ListeningFor::id && (this->handle(*reinterpret_cast<const ListeningFor *>(opaque)), true)) || ...);
 		}
 	};
 
