@@ -108,7 +108,8 @@ namespace ms::ui::layout {
 		// This trait limits keyboard events to whenever the object is focused. Focusing is stored directly
 		// on the parent UI (under the name currently_focused), and the specific order is specified by the layout parameters. Specifically, a member called `focus_index`
 		// should exist, and should be unique for all objects present.
-		struct FocusEnable : KeyTrait {};
+		template<typename Base=KeyTrait>
+		struct FocusEnable : Base {};
 
 		// This trait can be used as a "catch-all" case for when you want custom filter logic
 		template<auto Pointer, bool IsMouse> 
@@ -170,7 +171,7 @@ namespace ms::ui::layout {
 		constexpr static inline bool uses_mouse = std::disjunction_v<std::is_base_of<traits::MouseTrait, Traits>...>;
 		constexpr static inline bool uses_key = std::disjunction_v<std::is_base_of<traits::KeyTrait, Traits>...>;
 		constexpr static inline bool has_adjustable_bbox = std::disjunction_v<std::is_base_of<traits::HasAdjustableBBox, Traits>...>;
-		constexpr static inline bool is_focusable = std::disjunction_v<std::is_base_of<traits::FocusEnable, Traits>...>;
+		constexpr static inline bool is_focusable = std::disjunction_v<traits::is_trait_instance<Traits, traits::FocusEnable>...>;
 
 		template<typename Event, typename UI, typename Child>
 		inline static bool use(const Event& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
@@ -213,8 +214,8 @@ namespace ms::ui::layout {
 		template<typename T>
 		using event_to_trait_base_t = std::conditional_t<std::is_same_v<T, evt::TouchEvent>, traits::MouseTrait, traits::KeyTrait>;
 
-		template<typename Event, typename UI, typename Child>
-		inline static bool check(const traits::FocusEnable&, const Event& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
+		template<typename T, typename Event, typename UI, typename Child>
+		inline static bool check(const traits::FocusEnable<T>&, const Event& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
 			return parent.currently_focused == params.focus_index;
 		}
 
