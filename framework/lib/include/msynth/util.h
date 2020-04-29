@@ -9,6 +9,8 @@
 #define MSYNTH_APPCODE_MISSINGHW 0xc002
 #define MSYNTH_APPCODE_ERROR 0xc000
 
+#define CCMDATA __attribute__((section(".ccmdata")))
+
 namespace util {
 	template<int N, int D>
 	struct LowPassFilter {
