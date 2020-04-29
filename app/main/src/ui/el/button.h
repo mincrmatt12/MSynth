@@ -31,8 +31,9 @@ namespace ms::ui::element {
 				cb();
 				toggle_flag(FlagPressed);
 				mark_dirty();
+				return true;
 			}
-			return true;
+			return false;
 		}
 
 		void draw(const LayoutParams& lp) {
