@@ -25,7 +25,7 @@ else()
 endif()
 #set(COMMON_FLAGS "${COMMON_FLAGS} -Wl,--gc-sections,--relax -ffunction-sections")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -fno-exceptions -fno-rtti -Wno-register")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -fno-exceptions -fno-rtti -Wno-register -Wno-pmf-conversions")
 set(CMAKE_EXE_LINKER_FLAGS) # disable nosys
 set(CMAKE_CXX_STANDARD 17)
 
