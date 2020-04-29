@@ -44,8 +44,9 @@ namespace ms::ui {
 	// These are designed to help create the required typedefs for the layout system easily. The Trait system is largely left alone here,
 	// but these classes do stuff like generate LayoutParams etc.
 	//
-	// There are also some default LayoutParams present. There's also some of the critically important 
+	// There are also some default LayoutParams present. There's also some of the required public members, with some helper functions implemented.
 	
+	// Provide an appropriately sized flags member, as well as some helper methods.
 	template<typename FlagWidth>
 	struct ElementFlagsProviderImpl {
 		const static inline size_t FlagDirty = 0;
@@ -65,9 +66,16 @@ namespace ms::ui {
 		}
 	};
 
+	// Helper typedef to pick the right size for ElementFlagsProviderImpl
+	//
+	// Adds various helper methods and the flags attribute. Unless managed manually, all elements must inherit from this.
 	template<size_t FlagCount>
 	using ElementFlagsProvider = ElementFlagsProviderImpl<std::conditional_t<(FlagCount > 8), std::conditional_t<(FlagCount > 16), uint32_t, uint16_t>, uint8_t>>;
 
+	// A very basic layout parameter skeleton which only provides the necessary 'bbox' attribute.
+	//
+	// If you don't use the provided InsideTrait, you should include the NonInteractableTraitRequirement to inform the layout engine
+	// that we have a bounding box attribute.
 	template<typename BBoxType>
 	struct BasicLayoutParams {
 		BBoxType bbox;
@@ -76,14 +84,25 @@ namespace ms::ui {
 		using NonInteractableTraitRequirement = l::traits::HasAdjustableBBox;
 
 		constexpr BasicLayoutParams(const BBoxType& implicity) : bbox(implicity) {}
+		constexpr BasicLayoutParams(const BBoxType& implicity, BasicLayoutParams&& ) : bbox(implicity) {} // allow re-initializing
 	};
 
+	// Alias for the above basic layout parameter for the common case of a bounding box.
 	using BoxLayoutParams = BasicLayoutParams<Box>;
+
+	// A mixin type that memorizes the name of the focus order attribute for you :)
+	struct FocusLayoutParamsMixin {
+		uint16_t focus_index;
+
+		constexpr FocusLayoutParamsMixin(uint16_t in) : focus_index(in) {}
+	};
 
 	namespace element {};
 	namespace el = element;
 
-	// GLOBAL RESOURCES (placed in ccmdata)
+	// GLOBAL RESOURCES 
+	//
+	// These are placed in CCM because reasons.
 	extern CCMDATA const void * ui_16_font;
 	extern CCMDATA const void * ui_24_font;
 	extern CCMDATA const void * ui_32_font;
