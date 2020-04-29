@@ -38,7 +38,7 @@ namespace ms::ui::element {
 
 		void draw(const LayoutParams& lp) {
 			draw::outline(lp.bbox.x, lp.bbox.y, lp.bbox.x + lp.bbox.w, lp.bbox.y + lp.bbox.h, flag(FlagPressed) ? 0b11'01'11'01 : 0b11'10'10'10);
-			draw::rect(lp.bbox.x + 1, lp.bbox.y + 1, lp.bbox.x + lp.bbox.w, lp.bbox.y + lp.bbox.h, 0b11'01'01'01);
+			draw::rect(lp.bbox.x + 1, lp.bbox.y + 1, lp.bbox.x + lp.bbox.w, lp.bbox.y + lp.bbox.h, flag(FlagPressed) ? 0b11'00'01'00 : 0b11'01'01'01);
 
 			// center text
 			int16_t cx = lp.bbox.x + lp.bbox.w / 2 - (draw::text_size(label, ui_16_font) / 2);
