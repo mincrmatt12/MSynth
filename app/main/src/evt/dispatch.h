@@ -44,7 +44,7 @@ namespace ms::evt {
 
 	// Helper declaration to convert parameter pack to a bitmask of events
 	template<typename ...Events>
-	constexpr static inline std::enable_if_t<std::conjunction_v<is_event_v<Events>...>, uint32_t> events_to_bitmask = (Events::id | ...);
+	constexpr static inline std::enable_if_t<(is_event_v<Events> && ...), uint32_t> events_to_bitmask = (Events::id | ...);
 
 	// EVENT HANDLING
 
