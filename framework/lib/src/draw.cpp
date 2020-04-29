@@ -220,4 +220,13 @@ namespace draw {
 			data += w;
 		}
 	}
+
+	void outline(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color) {
+		memset(&framebuffer_data[y0][x0], color, x1-x0);
+		memset(&framebuffer_data[y1][x0], color, x1-x0);
+		for (int y = y0; y < y1; ++y) {
+			framebuffer_data[y][x0] = color;
+			framebuffer_data[y][x1] = color;
+		}
+	}
 }

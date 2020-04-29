@@ -21,4 +21,7 @@ namespace draw {
 
 	// Copy a block of rectangular pixels to a location on the display.
 	void blit(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const uint8_t * data);
+
+	// Draw the border of a rectangle (1-pixel thick)
+	void outline(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color);
 }
