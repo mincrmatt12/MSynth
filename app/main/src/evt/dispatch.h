@@ -20,6 +20,7 @@
 //
 // This exposes some internal stuff which allows the resulting type to be used by the event handling system.
 
+#include <cstdio>
 #include <stdint.h>
 #include <type_traits>
 
@@ -44,7 +45,7 @@ namespace ms::evt {
 
 	// Helper declaration to convert parameter pack to a bitmask of events
 	template<typename ...Events>
-	constexpr static inline std::enable_if_t<(is_event_v<Events> && ...), uint32_t> events_to_bitmask = (Events::id | ...);
+	constexpr static inline std::enable_if_t<(is_event_v<Events> && ...), uint32_t> events_to_bitmask = ((1 << Events::id) | ...);
 
 	// EVENT HANDLING
 
@@ -70,7 +71,7 @@ namespace ms::evt {
 
 	private:
 		void dispatch(const void *opaque, int id) override {
-			if (!((1 << id) & bitmask)) return;
+			if (!((1 << (uint32_t)id) & bitmask)) return;
 			((id == ListeningFor::id && (this->handle(*reinterpret_cast<const ListeningFor *>(opaque)), true)) || ...);
 		}
 	};
