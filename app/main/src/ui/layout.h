@@ -159,11 +159,11 @@ namespace ms::ui::layout {
 
 		// Logically ORs the parameters. Can be used for e.g. multiple click regions.
 		template<typename ...Bases>
-		struct Disjunction : std::conditional_t<std::disjunction_v<std::is_base_of_v<KeyTrait, Bases>...>, KeyTrait, MouseTrait> {};
+		struct Disjunction : std::conditional_t<std::disjunction_v<std::is_base_of<KeyTrait, Bases>...>, KeyTrait, MouseTrait> {};
 
 		// Logically ANDs the parameters (useful for complex enable statements)
 		template<typename ...Bases>
-		struct Conjunction : std::conditional_t<std::disjunction_v<std::is_base_of_v<KeyTrait, Bases>...>, KeyTrait, MouseTrait> {};
+		struct Conjunction : std::conditional_t<std::disjunction_v<std::is_base_of<KeyTrait, Bases>...>, KeyTrait, MouseTrait> {};
 
 		// Helper type traits to check templated trait types.
 		template<typename Check, template <typename, typename...> typename Template>
