@@ -108,6 +108,11 @@ namespace ms::ui::layout {
 		// This trait limits keyboard events to whenever the object is focused. Focusing is stored directly
 		// on the parent UI (under the name currently_focused), and the specific order is specified by the layout parameters. Specifically, a member called `focus_index`
 		// should exist, and should be unique for all objects present.
+		//
+		// Additionally, the presence of this trait means that you must handle the 'fake' FocusEvent which is sent whenever the focus changes. Focus is automatically
+		// updated whenever a mouse interaction occurs with the element. This behavior can be extended by the parent UI class, which is able to manually update its focus_index (
+		// although you _do_ need to call the relevant method in LayoutManager to get the change to propogate; there are helper methods included with the mixins in bases.h to 
+		// make this less annoying)
 		template<typename Base=KeyTrait>
 		struct FocusEnable : Base {};
 
@@ -124,10 +129,10 @@ namespace ms::ui::layout {
 			constexpr static inline size_t flag_no = FlagNo;
 		};
 
-		// Min pressure for interaction
-		template<int16_t Val>
-		struct MinPressure {
-			constexpr static inline int16_t value = Val;
+		// Subscribe to a specific set of touch events
+		template<decltype(evt::TouchEvent::state)... Types>
+		struct MouseTypes {
+			constexpr static inline uint32_t bitmask = ((uint32_t)Types | ...);
 		};
 
 		// This trait wraps another trait and causes it to have high priority over other traits, so that if it's type matches
@@ -146,9 +151,19 @@ namespace ms::ui::layout {
 			constexpr static inline auto callback = FPtr;
 		};
 
+		// This trait informs the LayoutManager that this element is a container of other elements. This means that it should implement at least stubs
+		// for all of the events, and it also means that if no element matches for a focus query, it will get deflected here.
+		//
+		// It also should have a public member named "focus" which will focus the selected index (or 0 for none).
+		struct IsContainer;
+
 		// Logically ORs the parameters. Can be used for e.g. multiple click regions.
 		template<typename ...Bases>
 		struct Disjunction : std::conditional_t<std::disjunction_v<std::is_base_of_v<KeyTrait, Bases>...>, KeyTrait, MouseTrait> {};
+
+		// Logically ANDs the parameters (useful for complex enable statements)
+		template<typename ...Bases>
+		struct Conjunction : std::conditional_t<std::disjunction_v<std::is_base_of_v<KeyTrait, Bases>...>, KeyTrait, MouseTrait> {};
 
 		// Helper type traits to check templated trait types.
 		template<typename Check, template <typename, typename...> typename Template>
@@ -171,6 +186,7 @@ namespace ms::ui::layout {
 		constexpr static inline bool uses_mouse = std::disjunction_v<std::is_base_of<traits::MouseTrait, Traits>...>;
 		constexpr static inline bool uses_key = std::disjunction_v<std::is_base_of<traits::KeyTrait, Traits>...>;
 		constexpr static inline bool has_adjustable_bbox = std::disjunction_v<std::is_base_of<traits::HasAdjustableBBox, Traits>...>;
+		constexpr static inline bool is_container = std::disjunction_v<std::is_base_of<traits::IsContainer, Traits>...>;
 		constexpr static inline bool is_focusable = std::disjunction_v<traits::is_trait_instance<Traits, traits::FocusEnable>...>;
 
 		template<typename Event, typename UI, typename Child>
@@ -231,9 +247,9 @@ namespace ms::ui::layout {
 			}
 		}
 
-		template<int16_t Min, typename UI, typename Child>
-		inline static bool check(const traits::MinPressure<Min>&, const evt::TouchEvent& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
-			return evt.pressure >= Min;
+		template<typename UI, typename Child, auto ...V>
+		inline static bool check(const traits::MouseTypes<V...>& x, const evt::TouchEvent& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
+			return evt.state & std::decay_t<decltype(x)>::bitmask;
 		}
 
 		template<size_t FlagNo, typename Event, typename UI, typename Child>
@@ -251,6 +267,11 @@ namespace ms::ui::layout {
 		template<typename Event, typename UI, typename Child, typename... Inner>
 		inline static bool check(const traits::Disjunction<Inner...>, const Event& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
 			return (check(Inner{}, evt, parent, child, params) || ...);
+		}
+
+		template<typename Event, typename UI, typename Child, typename... Inner>
+		inline static bool check(const traits::Conjunction<Inner...>, const Event& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
+			return (check(Inner{}, evt, parent, child, params) && ...);
 		}
 
 		template<typename Event, typename UI, typename Child, typename Inner>
@@ -303,13 +324,23 @@ namespace ms::ui::layout {
 		}
 
 		template<typename Event, size_t... Is>
-		bool dispatch(Managing& mg, const Event& evt, std::index_sequence<Is...>) const {
-			// Separated because of Is b.s.
-
-			// This function has a fairly simple responsibility; 	
-			return (((std::is_same_v<Event, evt::TouchEvent> ? Children::LayoutTraits::uses_mouse : Children::LayoutTraits::uses_key) && 
+		bool dispatch(Managing& mg, const Event& evt, std::index_sequence<Is...> iter) const {
+			// Dispatch events.
+			//
+			// For all elements...                  ... if the event is the right type ...
+			constexpr static bool is_key = std::is_same_v<Event, evt::TouchEvent>;
+			return (((is_key ? Children::LayoutTraits::uses_mouse : Children::LayoutTraits::uses_key) && 
+					  //                        ... if the traits say we should use the event ...
 			          Children::LayoutTraits::use(evt, mg, mg.*std::get<Is>(children), std::get<Is>(layout_params)) && 
-			          (mg.*std::get<Is>(children)).handle(mangle<Children, Is>(evt), std::get<Is>(layout_params))) || ...);
+					  // then do the following
+			          (
+					   //                                ... run the event handler ...
+					   (mg.*std::get<Is>(children)).handle(mangle<Children, Is>(evt), std::get<Is>(layout_params)) &&
+					   // ... if mouse event && is focusable ...         ... then set the focus to the element ...               ... and discard the result ...
+					   (!is_key && Children::LayoutTraits::is_focusable && (focus_impl(mg, focus_index_for<Children>(std::get<Is>(layout_params)), iter), true))
+					  )
+					) || ...
+		    );
 		}
 
 		template<typename Child>
@@ -349,6 +380,44 @@ namespace ms::ui::layout {
 			)) || ...);
 		}
 
+		// Helper method to get the correct focus
+		template<typename Child>
+		inline constexpr uint16_t focus_index_for(const typename Child::LayoutParams& lp) const {
+			if constexpr (Child::LayoutTraits::is_focusable) {
+				return lp.focus_index;
+			}
+			else return 0;
+		}
+
+		// Helper method to avoid sf errors.
+		template<typename Child>
+		void focus_impl_tail(Managing& mg, Child& c, int16_t target) {
+			if constexpr (Child::LayoutTraits::is_container) {
+				c.focus(mg, target);
+			}
+		}
+
+		template<bool UpdateNew=true, size_t... Is>
+		void focus_impl(Managing& mg, int16_t new_focus, std::index_sequence<Is...>) const {
+			if constexpr ((Children::LayoutTraits::is_focusable || ...)) {
+				// Inform the previously focused element of the upcoming change
+				((Children::LayoutTraits::is_focusable && mg.currently_focused == focus_index_for<Children>(std::get<Is>(layout_params)) && (
+					(mg.*std::get<Is>(children)).handle(evt::FocusEvent{false}), true
+				)) || ...) || ((focus_impl_tail(mg, mg.*std::get<Is>(children), 0), false) || ...);
+
+				// set the new focus
+				mg.currently_focused = new_focus;
+
+				if constexpr (UpdateNew) {
+					if (new_focus == 0) return;
+					// Inform the newly focused element of the change
+					((Children::LayoutTraits::is_focusable && new_focus == focus_index_for<Children>(std::get<Is>(layout_params)) && (
+						(mg.*std::get<Is>).handle(evt::FocusEvent{true}), true
+					)) || ...) || ((focus_impl_tail(mg, mg.*std::get<Is>(children), new_focus), false) || ...);
+				}
+			}
+		}
+
 	public:
 		// Properly dispatch an event to the contained children based on their traits.
 		bool handle(Managing& mg, const evt::KeyEvent& evt) const {
@@ -357,7 +426,8 @@ namespace ms::ui::layout {
 	
 		// Properly dispatch an event to the contained children based on their traits.
 		bool handle(Managing& mg, const evt::TouchEvent& evt) const {
-			return dispatch(mg, evt, ChildrenIter{});
+			// ... dispatch the events normally ...      ... but if nothing swallows the pressed event, unfocus everything ...                ... but still return false    
+			return dispatch(mg, evt, ChildrenIter{}) || (evt.state == evt::TouchEvent::StatePressed && (focus_impl<false>(mg, 0, ChildrenIter{}), false));
 		}
 
 		// Redraw the entire layout using the given bounds. Their position is added to all of the local params (with adjustable bboxes, anyways)
@@ -374,6 +444,14 @@ namespace ms::ui::layout {
 		// is provided for optimization purposes. We assume here the draw:: globals are set properly (i.e. they won't obstruct us)
 		void redraw(Managing& mg) const {
 			redraw(mg, ChildrenIter{});
+		}
+
+		// Mark an element as focused/unfocused. This sets the relevant index in the class, although in general, it isn't necessary to call this.
+		// Whenever a focus event occurs from within the class, this is automagically called. This is only really used when cycling the focus ID manually.
+		//
+		// I would use a fancy wrapper class 
+		void focus(Managing& mg, uint16_t index) const {
+			focus_impl(mg, index, ChildrenIter{});
 		}
 	};
 

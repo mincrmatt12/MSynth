@@ -19,16 +19,16 @@ namespace ms::ui::element {
 		}
 
 		using LayoutParams = BoxLayoutParams;
-		using LayoutTraits = l::LayoutTraits<BoxLayoutParams::InsideTrait, l::traits::MinPressure<40> /* todo some enabled check (IfFlag<FlagEnabled>) */, 
-			  l::traits::ForceIf<l::traits::MinPressure<evt::TouchEvent::PressureRemovedTouch>>>;
+		using LayoutTraits = l::LayoutTraits<BoxLayoutParams::InsideTrait, l::traits::MouseTypes<evt::TouchEvent::StatePressed> /* todo some enabled check (IfFlag<FlagEnabled>) */, 
+			  l::traits::ForceIf<l::traits::MouseTypes<evt::TouchEvent::StateReleased>>>;
 
 		bool handle(const evt::TouchEvent& evt, const LayoutParams& lp) {
-			if (evt.pressure == evt::TouchEvent::PressureRemovedTouch && flag(FlagPressed)) {
+			if (evt.state == evt::TouchEvent::StateReleased && flag(FlagPressed)) {
 				toggle_flag(FlagPressed);
 				mark_dirty();
 				cb();
 			}
-			if (evt.pressure != evt::TouchEvent::PressureRemovedTouch && !flag(FlagPressed)) {
+			else if (!flag(FlagPressed)) {
 				toggle_flag(FlagPressed);
 				mark_dirty();
 				return true;

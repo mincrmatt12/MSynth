@@ -49,17 +49,17 @@ namespace ms::in {
 
 		if (!is_pressed && fall_edge) {
 			// emit a touch released event
-			evt::TouchEvent evt{static_cast<int16_t>(raw_x), static_cast<int16_t>(raw_y), evt::TouchEvent::PressureRemovedTouch};
+			evt::TouchEvent evt{static_cast<int16_t>(raw_x), static_cast<int16_t>(raw_y), 0, evt::TouchEvent::StateReleased};
 			evt::dispatch(evt);
 			fall_edge = false;
 		}
 
-		fall_edge = is_pressed;
-
 		if (is_pressed) {
-			evt::TouchEvent evt{static_cast<int16_t>(raw_x), static_cast<int16_t>(raw_y), pressure};
+			evt::TouchEvent evt{static_cast<int16_t>(raw_x), static_cast<int16_t>(raw_y), pressure, fall_edge ? evt::TouchEvent::StateDragged : evt::TouchEvent::StatePressed};
 			evt::dispatch(evt);
 		}
+
+		fall_edge = is_pressed;
 	}
 }
 

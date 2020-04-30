@@ -70,7 +70,7 @@ namespace ms::evt {
 		static const inline uint32_t bitmask = events_to_bitmask<ListeningFor...>;
 
 	private:
-		void dispatch(const void *opaque, int id) override {
+		void dispatch(const void *opaque, int id) final {
 			if (!((1 << (uint32_t)id) & bitmask)) return;
 			((id == ListeningFor::id && (this->handle(*reinterpret_cast<const ListeningFor *>(opaque)), true)) || ...);
 		}

@@ -9,9 +9,13 @@ namespace ms::evt {
 	
 	struct TouchEvent {
 		const static inline int id = 1;
-		const static inline int16_t PressureRemovedTouch = INT16_MAX; // specifically large to get by MinPressure clauses.
 
 		int16_t x, y, pressure;
+		enum {
+			StatePressed = 1,
+			StateDragged = 2,
+			StateReleased = 4
+		} state;
 	};
 
 	struct KeyEvent {
@@ -85,6 +89,8 @@ namespace ms::evt {
 	struct DeviceStateEvent {
 		// Triggers when devices are connected/removed
 
+		const static inline int id = 5;
+
 		enum {
 			SourceUSB,
 			SourceMIDI,
@@ -99,5 +105,11 @@ namespace ms::evt {
 
 		const char * name;
 		const char * vendor;
+	};
+
+	struct FocusEvent {
+		// Virtual event; only used internally within the UI system, which doesn't have polymorphic handling.
+
+		bool is_focused;
 	};
 }
