@@ -6,7 +6,7 @@ bool ms::ui::el::Button::handle(const evt::TouchEvent& evt, const LayoutParams& 
 		mark_dirty();
 		cb();
 	}
-	else if (!flag(FlagPressed)) {
+	else if (evt.state == evt::TouchEvent::StatePressed && !flag(FlagPressed)) {
 		toggle_flag(FlagPressed);
 		mark_dirty();
 		return true;
