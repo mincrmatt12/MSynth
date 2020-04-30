@@ -52,7 +52,7 @@ namespace ms::evt {
 	// Internal helper to encapsulate the correct inheritance
 	template<typename Event>
 	struct callback_holder {
-		virtual void handle(const Event& evt) = 0;
+		virtual bool handle(const Event& evt) = 0;
 	};
 
 	// Advanced event handling, allows for custom opaque processing. EventHandler does this for you.
@@ -61,7 +61,7 @@ namespace ms::evt {
 		friend void ::ms::evt::dispatch(const void *, int);
 
 	protected:
-		virtual void dispatch(const void *opaque, int id) = 0;
+		virtual bool dispatch(const void *opaque, int id) = 0;
 	};
 
 	// Base event handler type
@@ -70,9 +70,9 @@ namespace ms::evt {
 		static const inline uint32_t bitmask = events_to_bitmask<ListeningFor...>;
 
 	private:
-		void dispatch(const void *opaque, int id) final {
-			if (!((1 << (uint32_t)id) & bitmask)) return;
-			((id == ListeningFor::id && (this->handle(*reinterpret_cast<const ListeningFor *>(opaque)), true)) || ...);
+		bool dispatch(const void *opaque, int id) final {
+			if (!((1 << (uint32_t)id) & bitmask)) return false;
+			return ((id == ListeningFor::id && this->handle(*reinterpret_cast<const ListeningFor *>(opaque))) || ...);
 		}
 	};
 
@@ -80,6 +80,7 @@ namespace ms::evt {
 
 	// Register a handler
 	void add(OpaqueHandler *oh);
+	void add_ui(OpaqueHandler *oh);
 
 	// Unregister a handler
 	//
