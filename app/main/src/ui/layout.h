@@ -381,7 +381,7 @@ namespace ms::ui::layout {
 		inline void redraw_background_for(Managing& mg, const typename Child::LayoutParams& adjusted) const {
 			if constexpr (Child::LayoutTraits::is_transparent) {
 				static_assert(Child::LayoutTraits::has_adjustable_bbox, "is_transparent && !has_adjustable_bbox is not a supported combo");
-				mg.draw_bg(adjusted.bbox);
+				mg.Managing::draw_bg(adjusted.bbox);
 			}
 		}
 
