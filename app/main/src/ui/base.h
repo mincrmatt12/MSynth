@@ -100,6 +100,26 @@ namespace ms::ui {
 		constexpr FocusLayoutParamsMixin(uint16_t in) : focus_index(in) {}
 	};
 
+	// USEFUL ENUMS
+	
+	enum Align {
+		AlignBegin,
+		AlignCenter,
+		AlignEnd
+	};
+
+	// Helper function to align something in a region
+	inline constexpr int16_t align_in(int16_t dimension, int16_t space, const Align& method) {
+		switch (method) {
+			case AlignBegin:
+				return 0;
+			case AlignCenter:
+				return (space / 2) - (dimension / 2);
+			case AlignEnd:
+				return space - dimension;
+		}
+	}
+
 	namespace element {};
 	namespace el = element;
 
