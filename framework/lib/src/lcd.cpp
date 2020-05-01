@@ -280,8 +280,8 @@ private:
 };
 
 struct LCDFilter {
-	using LowPassFilter = util::LowPassFilter<7, 10>;
-	static const inline int P = 6;
+	using LowPassFilter = util::LowPassFilter<7, 11>;
+	static const inline int P = 8;
 
 	bool operator()(bool p, uint16_t x, uint16_t y, uint16_t& xout, uint16_t &yout) {
 		if (!p) debounce = 0;
