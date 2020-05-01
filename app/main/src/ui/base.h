@@ -118,6 +118,7 @@ namespace ms::ui {
 	// Helper function to align something in a region
 	inline constexpr int16_t align_in(int16_t dimension, int16_t space, const Align& method) {
 		switch (method) {
+			default:
 			case AlignBegin:
 				return 0;
 			case AlignCenter:
