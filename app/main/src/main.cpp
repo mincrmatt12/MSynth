@@ -10,6 +10,7 @@
 
 #include "ui/base.h"
 #include "ui/el/button.h"
+#include "ui/el/text.h"
 #include "evt/dispatch.h"
 #include "evt/events.h"
 
@@ -22,18 +23,30 @@ struct TestButtonUI : ms::ui::UI, ms::evt::EventHandler<ms::evt::TouchEvent> {
 	void cb3() {puts("cb3");}
 	
 	// Buttons
-	ms::ui::el::Button button1, button2, button3;
+	ms::ui::el::Button button1, button2, button3, button4;
+
+	// Labels
+	ms::ui::el::Text label_counter; 
 
 	constexpr static auto layout = ms::ui::l::make_layout(&TestButtonUI::button1, ms::ui::Box(100, 100, 90, 25), 
 														  &TestButtonUI::button2, ms::ui::Box(100, 130, 90, 25),
-														  &TestButtonUI::button3, ms::ui::Box(200, 100, 160, 30));
+														  &TestButtonUI::button3, ms::ui::Box(400, 100, 160, 30),
+														  &TestButtonUI::button4, ms::ui::Box(200, 200, 50, 51),
+														  &TestButtonUI::label_counter, ms::ui::el::Text::LayoutParams(ms::ui::Box(10, 10, 200, 25), ms::ui::AlignBegin));
+private:
+	char textbuf[32] {};
+	int i = 0;
 
+public:
 	TestButtonUI() :
 		button1("Button 1", ms::ui::el::Button::Callback::create(*this, &TestButtonUI::cb1)), 
 		button2("Button 2", ms::ui::el::Button::Callback::create(*this, &TestButtonUI::cb2)),
-		button3("Big button 3", ms::ui::el::Button::Callback::create(*this, &TestButtonUI::cb3))
+		button3("Big button 3", ms::ui::el::Button::Callback::create(*this, &TestButtonUI::cb3)),
+		button4("ARDS", ms::ui::el::Button::Callback::create(*this, &TestButtonUI::cb3)),
+		label_counter(textbuf, 0xfc)
 	{
 		// Other init stuff etc.
+		strcpy(textbuf, "Nothin.");
 	}
 
 	void draw() override {
@@ -41,8 +54,22 @@ struct TestButtonUI : ms::ui::UI, ms::evt::EventHandler<ms::evt::TouchEvent> {
 		layout.redraw(*this);
 	}
 
-	void handle(const ms::evt::TouchEvent& evt) override {
-		layout.handle(*this, evt);
+	bool handle(const ms::evt::TouchEvent& evt) override {
+		if (!layout.handle(*this, evt)) {
+			++i;
+			if (!(i % 60)) {
+				snprintf(textbuf, 32, "Invalid %d times", i);
+				label_counter.set_label(textbuf);
+			}
+		}
+		return true;
+	}
+
+	void draw_bg(const ms::ui::Box& box) override {
+		draw::StackLocalBoundary bound(box.x, box.x + box.w + 1, box.y, box.y + box.h + 1);
+
+		draw::rect(0, 0, 480, 50, 0b11'00'00'11);
+		draw::rect(0, 50, 480, 272, 0);
 	}
 };
 
@@ -53,7 +80,7 @@ int main() {
 	puts("");
 	puts("Starting MSynth Main");
 	puts("--------------------");
-	puts("Version: 0.1");
+	puts("Version: 0.0");
 
 	// Make sure the filesystem was flashed correctly
 	if (!fs::is_present()) {
@@ -99,20 +126,27 @@ int main() {
 	util::delay(100); // TODO: remove me when there's more loading tasks... lol
 	ms::ui::ui_16_font = ui_font; // set ui font
 
-	// Clear the display in preparation for the UI
-	draw::fill(0x00);
-
 	// TODO: read previous UI state / serialize UI state and start the correct UI
 	// TODO: check if we need to start the SD card
 
 	TestButtonUI ui;
+
+	// Tell the UI to draw it's bg layer
+	ui.draw_bg(ms::ui::Box(0, 0, 480, 272));
 
 	ms::evt::add(&ui);
 	
 	while (1) {
 		util::delay(1);
 		ms::in::poll();
+		// TEMP TIME 
+		auto start = LTDC->CPSR;
 		ui.draw();
+		auto end = LTDC->CPSR;
+
+		int lines = std::abs(int(READ_BIT(end, LTDC_CPSR_CYPOS) - READ_BIT(start, LTDC_CPSR_CYPOS)));
+		if (lines == 0) continue;
+		printf("lines - %d\n", lines);
 	}
 
 	return 0;
