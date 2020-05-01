@@ -164,7 +164,7 @@ namespace ms::ui::layout {
 		//
 		// Note that a non-rectangular bounding box does _not_ imply this trait, rather a dynamically changing "effective bounding box" does: if the total area
 		// of pixels you write to changes dynamically, you need this trait.
-		struct IsTransparent;
+		struct IsTransparent {};
 
 		// Logically ORs the parameters. Can be used for e.g. multiple click regions.
 		template<typename ...Bases>
@@ -334,6 +334,14 @@ namespace ms::ui::layout {
 			else return in;
 		}
 
+		template<typename Child, typename Event>
+		inline bool call_handle_func(Child& child, Event&& event, const typename Child::LayoutParams& lp) const {
+			if constexpr (std::is_same_v<Event, evt::TouchEvent> ? Child::LayoutTraits::uses_mouse : Child::LayoutTraits::uses_key) {
+				return child.handle(std::forward<Event>(event), lp);
+			}
+			return false;
+		}
+
 		template<typename Event, size_t... Is>
 		bool dispatch(Managing& mg, const Event& evt, std::index_sequence<Is...> iter) const {
 			// Dispatch events.
@@ -346,7 +354,7 @@ namespace ms::ui::layout {
 					  // then do the following
 			          (
 					   //                                ... run the event handler ...
-					   (mg.*std::get<Is>(children)).handle(mangle<Children, Is>(evt), std::get<Is>(layout_params)) &&
+					   call_handle_func(mg.*std::get<Is>(children), mangle<Children, Is>(evt), std::get<Is>(layout_params)) &&
 					   // ... if mouse event && is focusable ...         ... then set the focus to the element ...               ... and discard the result ...
 					   (!is_key && Children::LayoutTraits::is_focusable && (focus_impl(mg, focus_index_for<Children>(std::get<Is>(layout_params)), iter), true))
 					  )
@@ -370,7 +378,7 @@ namespace ms::ui::layout {
 		}
 
 		template<typename Child>
-		inline void redraw_background_for(Managing& mg, const typename Child::LayoutParams& adjusted) {
+		inline void redraw_background_for(Managing& mg, const typename Child::LayoutParams& adjusted) const {
 			if constexpr (Child::LayoutTraits::is_transparent) {
 				static_assert(Child::LayoutTraits::has_adjustable_bbox, "is_transparent && !has_adjustable_bbox is not a supported combo");
 				mg.draw_bg(adjusted.bbox);
