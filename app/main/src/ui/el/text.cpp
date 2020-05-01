@@ -9,7 +9,7 @@ void ms::ui::element::Text::draw(const LayoutParams& lp) {
 	uint16_t width = draw::text_size(label, font);
 	
 	int16_t x = align_in(width, lp.bbox.w, lp.horiz_align);
-	int16_t y = align_in(16, lp.bbox.h, lp.vert_align) + 5; // TODO: use baseline
+	int16_t y = align_in(16, lp.bbox.h, lp.vert_align) + 13; // TODO: use baseline
 
 	draw::text(lp.bbox.x + x, lp.bbox.y + y, label, font, color);
 }
