@@ -159,6 +159,13 @@ namespace ms::ui::layout {
 		// It also should have a public member named "focus" which will focus the selected index (or 0 for none).
 		struct IsContainer;
 
+		// This trait informs the LayoutManager that this element does not always entirely fill its bounding box, and so the UI's "fill_background" function
+		// should be called. This assumes that either the bounding box type is Box, or that there exists an implicit cast to it.
+		//
+		// Note that a non-rectangular bounding box does _not_ imply this trait, rather a dynamically changing "effective bounding box" does: if the total area
+		// of pixels you write to changes dynamically, you need this trait.
+		struct IsTransparent;
+
 		// Logically ORs the parameters. Can be used for e.g. multiple click regions.
 		template<typename ...Bases>
 		struct Disjunction : std::conditional_t<std::disjunction_v<std::is_base_of<KeyTrait, Bases>...>, KeyTrait, MouseTrait> {};
@@ -189,6 +196,7 @@ namespace ms::ui::layout {
 		constexpr static inline bool uses_key = std::disjunction_v<std::is_base_of<traits::KeyTrait, Traits>...>;
 		constexpr static inline bool has_adjustable_bbox = std::disjunction_v<std::is_base_of<traits::HasAdjustableBBox, Traits>...>;
 		constexpr static inline bool is_container = std::disjunction_v<std::is_base_of<traits::IsContainer, Traits>...>;
+		constexpr static inline bool is_transparent = std::disjunction_v<std::is_base_of<traits::IsTransparent, Traits>...>;
 		constexpr static inline bool is_focusable = std::disjunction_v<traits::is_trait_instance<Traits, traits::FocusEnable>...>;
 
 		template<typename Event, typename UI, typename Child>
@@ -215,10 +223,11 @@ namespace ms::ui::layout {
 			else {
 				// Otherwise, try falling back to BBOX
 				if constexpr (has_adjustable_bbox) {
-					origin_x = lp.bbox.x;
-					origin_y = lp.bbox.y;
-					width = lp.bbox.w;
-					height = lp.bbox.h;
+					const Box bbox = lp.bbox;
+					origin_x = bbox.x;
+					origin_y = bbox.y;
+					width = bbox.w;
+					height = bbox.h;
 					return true;
 				}
 				else {
@@ -346,17 +355,28 @@ namespace ms::ui::layout {
 		}
 
 		template<typename Child>
-		std::enable_if_t<Child::LayoutTraits::has_adjustable_bbox> redraw_impl(Child& child, const Box& bound, const typename Child::LayoutParams& unadjust) const {
-			typename Child::LayoutParams adjusted = unadjust;
-			adjusted.bbox.x += bound.x;
-			adjusted.bbox.y += bound.y;
-			child.draw(adjusted);
+		inline void redraw_impl(Managing &mg, Child& child, const Box& bound, const typename Child::LayoutParams& unadjust) const {
+			if constexpr (Child::LayoutTraits::has_adjustable_bbox) {
+				typename Child::LayoutParams adjusted = unadjust;
+				adjusted.bbox.x += bound.x;
+				adjusted.bbox.y += bound.y;
+				redraw_background_for<Child>(mg, adjusted);
+				child.draw(adjusted);
+			}
+			else {
+				redraw_background_for<Child>(mg, unadjust);
+				child.draw(unadjust);
+			}
 		}
 
 		template<typename Child>
-		inline std::enable_if_t<!Child::LayoutTraits::has_adjustable_bbox> redraw_impl(Child& child, const Box& bound, const typename Child::LayoutParams& unadjust) const {
-			child.draw(unadjust);
+		inline void redraw_background_for(Managing& mg, const typename Child::LayoutParams& adjusted) {
+			if constexpr (Child::LayoutTraits::is_transparent) {
+				static_assert(Child::LayoutTraits::has_adjustable_bbox, "is_transparent && !has_adjustable_bbox is not a supported combo");
+				mg.draw_bg(adjusted.bbox);
+			}
 		}
+
 
 		template<size_t... Is>
 		void redraw(Managing &mg, const Box& bound, std::index_sequence<Is...>) const {
@@ -366,7 +386,7 @@ namespace ms::ui::layout {
 			// Over all children...
 			((((mg.*std::get<Is>(children)).flags & 1 /* dirty flag is always the first one */) && (
 				/* reset the dirty flag */ (mg.*std::get<Is>(children)).flags ^= 1,
-				/* adjust bbox and call draw */ redraw_impl(mg.*std::get<Is>(children), bound, std::get<Is>(layout_params)),
+				/* adjust bbox and call draw */ redraw_impl(mg, mg.*std::get<Is>(children), bound, std::get<Is>(layout_params)),
 				/* keep iterating */ false
 			)) || ...);
 		}
@@ -376,6 +396,7 @@ namespace ms::ui::layout {
 			// Over all children...
 			((((mg.*std::get<Is>(children)).flags & 1 /* dirty flag is always the first one */) && (
 				/* reset the dirty flag */ (mg.*std::get<Is>(children)).flags ^= 1,
+				/* draw background if required */ redraw_background_for<Children>(mg, std::get<Is>(layout_params)),
 				/* just call draw */(mg.*std::get<Is>(children)).draw(std::get<Is>(layout_params)),
 				/* keep iterating */ false
 			)) || ...);
