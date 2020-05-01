@@ -216,7 +216,9 @@ next:
 
 	// DRAWING ROUTINES
 	void fill(uint8_t color) {
-		memset(framebuffer_data, color, sizeof(framebuffer_data));
+		if (min_x == 0 && max_x == 480 && min_y == 0 && max_y == 272)
+			memset(framebuffer_data, color, sizeof(framebuffer_data));
+		else rect(min_x, min_y, max_x, max_y, color);
 	}
 
 	void rect(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color) {
