@@ -60,6 +60,8 @@
 #include "../evt/events.h"
 #include "bounding.h"
 
+#include <msynth/draw.h>
+
 namespace ms::ui::layout {
 	// TEMPLATE HELPERS
 	template<int N, typename... Ts>
@@ -358,7 +360,8 @@ namespace ms::ui::layout {
 
 		template<size_t... Is>
 		void redraw(Managing &mg, const Box& bound, std::index_sequence<Is...>) const {
-			// TODO: update the "fake" draw-stack (globals for bounds checking)
+			// Update the boundary region for the screen.
+			draw::StackLocalBoundary(bound.x, bound.x + bound.w + 1, bound.y, bound.y + bound.h + 1);
 
 			// Over all children...
 			((((mg.*std::get<Is>(children)).flags & 1 /* dirty flag is always the first one */) && (
@@ -370,12 +373,10 @@ namespace ms::ui::layout {
 
 		template<size_t... Is>
 		void redraw(Managing &mg, std::index_sequence<Is...>) const {
-			// TODO: update the "fake" draw-stack (globals for bounds checking)
-
 			// Over all children...
 			((((mg.*std::get<Is>(children)).flags & 1 /* dirty flag is always the first one */) && (
 				/* reset the dirty flag */ (mg.*std::get<Is>(children)).flags ^= 1,
-				/* adjust bbox and call draw */(mg.*std::get<Is>(children)).draw(std::get<Is>(layout_params)),
+				/* just call draw */(mg.*std::get<Is>(children)).draw(std::get<Is>(layout_params)),
 				/* keep iterating */ false
 			)) || ...);
 		}
@@ -412,10 +413,15 @@ namespace ms::ui::layout {
 					if (new_focus == 0) return;
 					// Inform the newly focused element of the change
 					((Children::LayoutTraits::is_focusable && new_focus == focus_index_for<Children>(std::get<Is>(layout_params)) && (
-						(mg.*std::get<Is>).handle(evt::FocusEvent{true}), true
+						(mg.*std::get<Is>(children)).handle(evt::FocusEvent{true}), true
 					)) || ...) || ((focus_impl_tail(mg, mg.*std::get<Is>(children), new_focus), false) || ...);
 				}
 			}
+		}
+
+		template<size_t... Is>
+		void set_dirty(Managing &mg, std::index_sequence<Is...>) const {
+			(((mg.*std::get<Is>(children)).flags |= 1), ...);
 		}
 
 	public:
@@ -452,6 +458,11 @@ namespace ms::ui::layout {
 		// I would use a fancy wrapper class 
 		void focus(Managing& mg, uint16_t index) const {
 			focus_impl(mg, index, ChildrenIter{});
+		}
+
+		// Force a complete redraw of the entire UI; effectively a lazy shortcut to setting every dirty flag true.
+		void force_dirty(Managing& mg) const {
+			force_dirty(mg, ChildrenIter{});
 		}
 	};
 

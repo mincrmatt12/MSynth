@@ -25,6 +25,9 @@ namespace ms::ui {
 
 		// Called whenever it's time to redraw; this is called _after_ the events are processed usually.
 		virtual void draw() = 0;
+
+		// Force redraw (should set everything dirty -- see the helper "set dirty" method in the layoutmanager)
+		virtual void force_dirty() {}
 	};
 
 	// UI BASE HELPERS
