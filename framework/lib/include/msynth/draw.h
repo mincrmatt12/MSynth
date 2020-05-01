@@ -30,16 +30,8 @@ namespace draw {
 
 	// Helper RAII struct to set and restore the min,max_x,y vars above.
 	struct StackLocalBoundary {
-		StackLocalBoundary(int16_t new_min_x, int16_t new_max_x, int16_t new_min_y, int16_t new_max_y) {
-			old_min_x = min_x; old_max_x = max_x; old_min_y = min_y; old_max_y = max_y;
-			min_x = new_min_x; max_x = new_max_x; min_y = new_min_y; max_y = new_max_y;
-		}
-
-		StackLocalBoundary(const StackLocalBoundary& other) = delete;
-
-		~StackLocalBoundary() {
-			min_x = old_min_x; max_x = old_max_x; min_y = old_min_y; max_y = old_max_y;
-		}
+		StackLocalBoundary(int16_t new_min_x, int16_t new_max_x, int16_t new_min_y, int16_t new_max_y); 
+		~StackLocalBoundary();
 
 		// Old state
 		int16_t old_min_x, old_max_x, old_min_y, old_max_y;

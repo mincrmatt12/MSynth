@@ -9,6 +9,15 @@ namespace draw {
 	int16_t min_x = 0, max_x = 480, 
 			min_y = 0, max_y = 272;
 
+	StackLocalBoundary::StackLocalBoundary(int16_t new_min_x, int16_t new_max_x, int16_t new_min_y, int16_t new_max_y) {
+		old_min_x = min_x; old_max_x = max_x; old_min_y = min_y; old_max_y = max_y;
+		min_x = new_min_x; max_x = new_max_x; min_y = new_min_y; max_y = new_max_y;
+	}
+
+	StackLocalBoundary::~StackLocalBoundary() {
+		min_x = old_min_x; max_x = old_max_x; min_y = old_min_y; max_y = old_max_y;
+	}
+
 	// FONT ROUTINES & TYPEDEFS
 	struct Kern {
 		char a, b;
@@ -222,10 +231,11 @@ next:
 	}
 
 	void rect(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color) {
-		if (y0 >= max_y) return;
+		y0 = std::min(std::max(min_y, y0), max_y);
+		y1 = std::min(std::max(min_y, y1), max_y);
 		x0 = std::min(std::max(min_x, x0), max_x);
 		x1 = std::min(std::max(min_x, x1), max_x);
-		for (int16_t y = std::max(y0, min_y); y < std::min<int16_t>(max_y-1, y1); ++y) {
+		for (int16_t y = y0; y < y1; ++y) {
 			memset(&framebuffer_data[y][x0], color, x1 - x0);
 		}
 	}
