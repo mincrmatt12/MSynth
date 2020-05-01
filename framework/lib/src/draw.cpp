@@ -1,9 +1,14 @@
+#include <algorithm>
 #include <draw.h>
 #include <lcd.h>
 #include <string.h>
 #include <stm32f4xx_ll_dma2d.h>
 
 namespace draw {
+	// GLOBAL STATE VARIABLES
+	int16_t min_x = 0, max_x = 480, 
+			min_y = 0, max_y = 272;
+
 	// FONT ROUTINES & TYPEDEFS
 	struct Kern {
 		char a, b;
@@ -66,9 +71,11 @@ namespace draw {
 		};
 	};
 
-	void raw_write_glyph(uint16_t x, uint16_t y, const Metrics& metrics, uint8_t color) {
-		for (uint16_t cursor_y = y; cursor_y < y + metrics.height; ++y) {
-			for (uint16_t cursor_x = x; cursor_x < x + metrics.width; ++x) {
+	void raw_write_glyph(int16_t x, int16_t y, const Metrics& metrics, uint8_t color) {
+		for (int16_t cursor_y = std::max(min_y, y); cursor_y < y + metrics.height; ++y) {
+			if (cursor_y >= max_y) break;
+			for (int16_t cursor_x = std::max(min_x, x); cursor_x < x + metrics.width; ++x) {
+				if (cursor_x >= max_x) break;
 				// Lookup value in data
 				uint8_t byte = (cursor_x - x) / 8;
 				uint8_t bit =  (cursor_x - x) % 8;
@@ -79,7 +86,7 @@ namespace draw {
 		}
 	}
 
-	void decompress_write_glyph(uint16_t x, uint16_t y, const Metrics& metrics, uint8_t color) {
+	void decompress_write_glyph(int16_t x, int16_t y, const Metrics& metrics, uint8_t color) {
 		// Helper function to get bit
 		
 		int bit = 8;
@@ -93,7 +100,7 @@ namespace draw {
 			return (*data & (1 << bit)) >> bit;
 		};
 
-		uint16_t cursor_x = x, cursor_y = y;
+		int16_t cursor_x = x, cursor_y = y;
 		int total = 0;
 
 		bool rowbuf[metrics.width * 2]; // rowbuf1 gets filled, copied to rowbuf0
@@ -101,7 +108,11 @@ namespace draw {
 		auto WriteBit = [&](bool bit){
 			++total;
 			rowbuf[cursor_x - x] = bit;
-			if (bit) {framebuffer_data[cursor_y][cursor_x] = color;}
+			if (bit) {
+				if (cursor_y >= max_y || cursor_y < min_y || cursor_x >= max_x || cursor_x < min_x) goto next;
+				framebuffer_data[cursor_y][cursor_x] = color;
+			}
+next:
 			++cursor_x;
 			if (cursor_x == x + metrics.width) {
 				cursor_x = x;
@@ -152,7 +163,7 @@ namespace draw {
 		}
 	}
 
-	uint16_t /* end pos */ text(uint16_t x, uint16_t y, const char* text, const void * font_, uint8_t color) {
+	uint16_t /* end pos */ text(int16_t x, int16_t y, const char* text, const void * font_, uint8_t color) {
 		uint16_t pen = x;
 		const Font& font = *(const Font *)(font_);
 
@@ -208,25 +219,42 @@ namespace draw {
 		memset(framebuffer_data, color, sizeof(framebuffer_data));
 	}
 
-	void rect(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color) {
-		for (int y = y0; y < y1; ++y) {
+	void rect(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color) {
+		if (y0 >= max_y) return;
+		x0 = std::min(std::max(min_x, x0), max_x);
+		x1 = std::min(std::max(min_x, x1), max_x);
+		for (int16_t y = std::max(y0, min_y); y < std::min<int16_t>(max_y-1, y1); ++y) {
 			memset(&framebuffer_data[y][x0], color, x1 - x0);
 		}
 	}
 
-	void blit(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t * data) {
-		for (int i = 0; i < h; ++i) {
-			memcpy(&framebuffer_data[y++][x], data, w);
+	void blit(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t * data) {
+		size_t stride = (x + w) >= max_x ? (max_x - x) : w;
+		if (x < min_x) {
+			data += min_x - x;
+			stride -= min_x - x;
+			x = min_x;
+		}
+		for (int16_t i = 0; i < h; ++i) {
+			if (y >= min_y && y < max_y) {
+				memcpy(&framebuffer_data[y][x], data, stride);
+			}
+			++y;
 			data += w;
 		}
 	}
 
-	void outline(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color) {
-		memset(&framebuffer_data[y0][x0], color, x1-x0);
-		memset(&framebuffer_data[y1][x0], color, x1-x0);
+	void outline(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color) {
 		for (int y = y0; y < y1; ++y) {
-			framebuffer_data[y][x0] = color;
-			framebuffer_data[y][x1] = color;
+			if (y < min_y || max_y <= y) continue;
+			if (x0 >= min_x && max_x > x0) framebuffer_data[y][x0] = color;
+			if (x1 >= min_x && max_x > x1) framebuffer_data[y][x1] = color;
+		}
+
+		for (int x = x0; x < x1; ++x) {
+			if (x < min_x || max_x <= x) continue;
+			if (y0 >= min_y && max_y > y0) framebuffer_data[y0][x] = color;
+			if (y1 >= min_y && max_y > y1) framebuffer_data[y1][x] = color;
 		}
 	}
 }
