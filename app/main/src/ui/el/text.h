@@ -22,7 +22,7 @@ namespace ms::ui::element {
 			constexpr LayoutParams(const Box& box, LayoutParams&& lp) : LayoutParams(box, lp.horiz_align, lp.vert_align) {}
 		};
 
-		using LayoutTraits = l::LayoutTraits<BoxLayoutParams::NonInteractableTraitRequirement>;
+		using LayoutTraits = l::LayoutTraits<BoxLayoutParams::NonInteractableTraitRequirement, l::traits::IsTransparent>;
 
 		void draw(const LayoutParams& lp); 
 		void set_label(const char * text);
