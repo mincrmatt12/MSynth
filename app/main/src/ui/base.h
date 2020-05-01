@@ -11,6 +11,7 @@
 
 #include "layout.h"
 #include <msynth/util.h>
+#include <msynth/draw.h>
 
 namespace ms::ui {
 	// UI BASES
@@ -28,6 +29,12 @@ namespace ms::ui {
 
 		// Force redraw (should set everything dirty -- see the helper "set dirty" method in the layoutmanager)
 		virtual void force_dirty() {}
+
+		// Fill in the background for a given area -- by default fills the given area with black.
+		// Note this is also called as part of the initial setup for a UI externally
+		virtual void draw_bg(const Box& box) {
+			draw::rect(box.x, box.y, box.x + box.w, box.y + box.h, 0);
+		}
 	};
 
 	// UI BASE HELPERS
