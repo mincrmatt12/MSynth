@@ -389,7 +389,7 @@ namespace ms::ui::layout {
 		template<size_t... Is>
 		void redraw(Managing &mg, const Box& bound, std::index_sequence<Is...>) const {
 			// Update the boundary region for the screen.
-			draw::StackLocalBoundary(bound.x, bound.x + bound.w + 1, bound.y, bound.y + bound.h + 1);
+			draw::StackLocalBoundary boundary(bound.x, bound.x + bound.w + 1, bound.y, bound.y + bound.h + 1);
 
 			// Over all children...
 			((((mg.*std::get<Is>(children)).flags & 1 /* dirty flag is always the first one */) && (
