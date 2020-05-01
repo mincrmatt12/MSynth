@@ -321,11 +321,14 @@ bool lcd::poll(uint16_t &xout, uint16_t &yout) {
 
 	// Dummy X read
 	read_xpt2046(read_x);
+	read_xpt2046(read_y);
+	read_xpt2046(read_x);
 
 	for (int i = 0; i < 3; ++i) {
+		on_read[i] = !LL_GPIO_IsInputPinSet(GPIOC, LL_GPIO_PIN_1);
 		y_read[i] = read_xpt2046(read_y);
 		x_read[i] = read_xpt2046(read_x);
-		on_read[i] = !LL_GPIO_IsInputPinSet(GPIOC, LL_GPIO_PIN_1);
+		on_read[i] &= !LL_GPIO_IsInputPinSet(GPIOC, LL_GPIO_PIN_1);
 	}
 
 	// Disable CS
