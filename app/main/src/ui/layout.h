@@ -489,8 +489,6 @@ namespace ms::ui::layout {
 
 		// Mark an element as focused/unfocused. This sets the relevant index in the class, although in general, it isn't necessary to call this.
 		// Whenever a focus event occurs from within the class, this is automagically called. This is only really used when cycling the focus ID manually.
-		//
-		// I would use a fancy wrapper class 
 		void focus(Managing& mg, uint16_t index) const {
 			focus_impl(mg, index, ChildrenIter{});
 		}
