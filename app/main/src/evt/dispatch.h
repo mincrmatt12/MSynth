@@ -68,6 +68,9 @@ namespace ms::evt {
 	template<typename ...ListeningFor>
 	struct EventHandler : public OpaqueHandler, protected callback_holder<ListeningFor>... {
 		static const inline uint32_t bitmask = events_to_bitmask<ListeningFor...>;
+	
+	protected:
+		using callback_holder<ListeningFor>::handle...; // required to get around hiding rules
 
 	private:
 		bool dispatch(const void *opaque, int id) final {
