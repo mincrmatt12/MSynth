@@ -33,10 +33,13 @@ void ms::ui::el::FocusableButton::draw(const LayoutParams& lp) {
 }
 
 bool ms::ui::el::FocusableButton::handle(const evt::KeyEvent& evt, const LayoutParams&) {
-	if (evt.down == true && evt.key == periph::ui::button::ENTER) {
-		cb();
+	if (evt.down == !flag(FlagPressed) && evt.key == periph::ui::button::ENTER) {
+		toggle_flag(FlagPressed);
+		mark_dirty();
+		if (evt.down) cb();
 		return true;
 	}
+
 	return false;
 }
 
