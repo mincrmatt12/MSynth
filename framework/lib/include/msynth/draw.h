@@ -25,6 +25,9 @@ namespace draw {
 	// Draw the border of a rectangle (1-pixel thick)
 	void outline(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color);
 
+	// Draw a 2-2 dashed outline pattern
+	void dashed_outline(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color);
+
 	// BOUNDARY VARS (inited by default)
 	extern int16_t min_x, max_x, min_y, max_y;
 

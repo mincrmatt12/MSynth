@@ -269,4 +269,26 @@ next:
 			if (y1 >= min_y && max_y > y1) framebuffer_data[y1][x] = color;
 		}
 	}
+
+	void dashed_outline(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color) {
+		for (int y = y0; y < y1; y += 2) {
+			if (y < min_y || max_y <= y) continue;
+			if (x0 >= min_x && max_x > x0) framebuffer_data[y][x0] = color;
+			if (x1 >= min_x && max_x > x1) framebuffer_data[y][x1] = color;
+			++y;
+			if (y < min_y || max_y <= y) continue;
+			if (x0 >= min_x && max_x > x0) framebuffer_data[y][x0] = color;
+			if (x1 >= min_x && max_x > x1) framebuffer_data[y][x1] = color;
+		}
+
+		for (int x = x0; x < x1; x += 2) {
+			if (x < min_x || max_x <= x) continue;
+			if (y0 >= min_y && max_y > y0) framebuffer_data[y0][x] = color;
+			if (y1 >= min_y && max_y > y1) framebuffer_data[y1][x] = color;
+			++x;
+			if (x < min_x || max_x <= x) continue;
+			if (y0 >= min_y && max_y > y0) framebuffer_data[y0][x] = color;
+			if (y1 >= min_y && max_y > y1) framebuffer_data[y1][x] = color;
+		}
+	}
 }
