@@ -114,9 +114,12 @@ namespace ms::ui::layout {
 		// Additionally, the presence of this trait means that you must handle the 'fake' FocusEvent which is sent whenever the focus changes. Focus is automatically
 		// updated whenever a mouse interaction occurs with the element. This behavior can be extended by the parent UI class, which is able to manually update its focus_index (
 		// although you _do_ need to call the relevant method in LayoutManager to get the change to propogate; there are helper methods included with the mixins in bases.h to 
-		// make this less annoying)
+		// make this less annoying) and can be disabled by adding the PassiveFocus trait.
 		template<typename Base=KeyTrait>
 		struct FocusEnable : Base {};
+
+		// Only _responds_ to focus events, isn't implicitly focused by mouse interactions.
+		struct PassiveFocus {};
 
 		// This trait can be used as a "catch-all" case for when you want custom filter logic
 		template<auto Pointer, bool IsMouse> 
@@ -198,6 +201,7 @@ namespace ms::ui::layout {
 		constexpr static inline bool is_container = std::disjunction_v<std::is_base_of<traits::IsContainer, Traits>...>;
 		constexpr static inline bool is_transparent = std::disjunction_v<std::is_base_of<traits::IsTransparent, Traits>...>;
 		constexpr static inline bool is_focusable = std::disjunction_v<traits::is_trait_instance<Traits, traits::FocusEnable>...>;
+		constexpr static inline bool is_focusable_by_mouse_select = is_focusable && !std::disjunction_v<std::is_base_of<traits::PassiveFocus, Traits>...>;
 
 		template<typename Event, typename UI, typename Child>
 		inline static bool use(const Event& evt, const UI& parent, const Child& child, const typename Child::LayoutParams& params) {
@@ -336,7 +340,9 @@ namespace ms::ui::layout {
 
 		template<typename Child, typename Event>
 		inline bool call_handle_func(Child& child, Event&& event, const typename Child::LayoutParams& lp) const {
-			if constexpr (std::is_same_v<Event, evt::TouchEvent> ? Child::LayoutTraits::uses_mouse : Child::LayoutTraits::uses_key) {
+			if constexpr ((std::is_same_v<Event, evt::TouchEvent> && Child::LayoutTraits::uses_mouse) || 
+						  (std::is_same_v<Event, evt::KeyEvent> && Child::LayoutTraits::uses_key) || 
+						  (std::is_same_v<Event, evt::FocusEvent> && Child::LayoutTraits::is_focusable)) {
 				return child.handle(std::forward<Event>(event), lp);
 			}
 			return false;
@@ -347,8 +353,8 @@ namespace ms::ui::layout {
 			// Dispatch events.
 			//
 			// For all elements...                  ... if the event is the right type ...
-			constexpr static bool is_key = std::is_same_v<Event, evt::TouchEvent>;
-			return (((is_key ? Children::LayoutTraits::uses_mouse : Children::LayoutTraits::uses_key) && 
+			constexpr static bool is_mouse = std::is_same_v<Event, evt::TouchEvent>;
+			return (((is_mouse ? Children::LayoutTraits::uses_mouse : Children::LayoutTraits::uses_key) && 
 					  //                        ... if the traits say we should use the event ...
 			          Children::LayoutTraits::use(evt, mg, mg.*std::get<Is>(children), std::get<Is>(layout_params)) && 
 					  // then do the following
@@ -356,7 +362,7 @@ namespace ms::ui::layout {
 					   //                                ... run the event handler ...
 					   call_handle_func(mg.*std::get<Is>(children), mangle<Children, Is>(evt), std::get<Is>(layout_params)) &&
 					   // ... if mouse event && is focusable ...         ... then set the focus to the element ...               ... and discard the result ...
-					   (!is_key && Children::LayoutTraits::is_focusable && (focus_impl(mg, focus_index_for<Children>(std::get<Is>(layout_params)), iter), true))
+					   (is_mouse && Children::LayoutTraits::is_focusable_by_mouse_select && (focus_impl(mg, focus_index_for<Children>(std::get<Is>(layout_params)), iter), true))
 					  )
 					) || ...
 		    );
@@ -412,7 +418,7 @@ namespace ms::ui::layout {
 
 		// Helper method to get the correct focus
 		template<typename Child>
-		inline constexpr uint16_t focus_index_for(const typename Child::LayoutParams& lp) const {
+		inline constexpr int16_t focus_index_for(const typename Child::LayoutParams& lp) const {
 			if constexpr (Child::LayoutTraits::is_focusable) {
 				return lp.focus_index;
 			}
@@ -421,7 +427,7 @@ namespace ms::ui::layout {
 
 		// Helper method to avoid sf errors.
 		template<typename Child>
-		void focus_impl_tail(Managing& mg, Child& c, int16_t target) {
+		void focus_impl_tail(Managing& mg, Child& c, int16_t target) const {
 			if constexpr (Child::LayoutTraits::is_container) {
 				c.focus(mg, target);
 			}
@@ -432,7 +438,7 @@ namespace ms::ui::layout {
 			if constexpr ((Children::LayoutTraits::is_focusable || ...)) {
 				// Inform the previously focused element of the upcoming change
 				((Children::LayoutTraits::is_focusable && mg.currently_focused == focus_index_for<Children>(std::get<Is>(layout_params)) && (
-					(mg.*std::get<Is>(children)).handle(evt::FocusEvent{false}), true
+					call_handle_func(mg.*std::get<Is>(children), evt::FocusEvent{false}, std::get<Is>(layout_params)), true
 				)) || ...) || ((focus_impl_tail(mg, mg.*std::get<Is>(children), 0), false) || ...);
 
 				// set the new focus
@@ -442,7 +448,7 @@ namespace ms::ui::layout {
 					if (new_focus == 0) return;
 					// Inform the newly focused element of the change
 					((Children::LayoutTraits::is_focusable && new_focus == focus_index_for<Children>(std::get<Is>(layout_params)) && (
-						(mg.*std::get<Is>(children)).handle(evt::FocusEvent{true}), true
+						call_handle_func(mg.*std::get<Is>(children), evt::FocusEvent{true}, std::get<Is>(layout_params)), true
 					)) || ...) || ((focus_impl_tail(mg, mg.*std::get<Is>(children), new_focus), false) || ...);
 				}
 			}
