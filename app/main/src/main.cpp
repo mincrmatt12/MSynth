@@ -16,7 +16,7 @@
 
 // TEST UI
 
-struct TestButtonUI : ms::ui::UI, ms::evt::EventHandler<ms::evt::TouchEvent> {
+struct TestButtonUI : ms::ui::UI, ms::evt::EventHandler<ms::evt::TouchEvent, ms::evt::KeyEvent>, ms::ui::UIFocusMixin {
 	// Callbacks
 	void cb1() {puts("cb1");}
 	void cb2() {puts("cb2");}
@@ -25,14 +25,20 @@ struct TestButtonUI : ms::ui::UI, ms::evt::EventHandler<ms::evt::TouchEvent> {
 	// Buttons
 	ms::ui::el::Button button1, button2, button3, button4;
 
+	// Focusable buttons
+	ms::ui::el::FocusableButton fb1, fb2;
+
 	// Labels
-	ms::ui::el::Text label_counter; 
+	ms::ui::el::Text label_counter, label_static; 
 
 	constexpr static auto layout = ms::ui::l::make_layout(&TestButtonUI::button1, ms::ui::Box(100, 100, 90, 25), 
 														  &TestButtonUI::button2, ms::ui::Box(100, 130, 90, 25),
 														  &TestButtonUI::button3, ms::ui::Box(400, 100, 160, 30),
 														  &TestButtonUI::button4, ms::ui::Box(200, 200, 50, 51),
-														  &TestButtonUI::label_counter, ms::ui::el::Text::LayoutParams(ms::ui::Box(10, 10, 200, 25), ms::ui::AlignBegin));
+														  &TestButtonUI::label_counter, ms::ui::el::Text::LayoutParams(ms::ui::Box(10, 10, 200, 25), ms::ui::AlignBegin),
+														  &TestButtonUI::label_static,  ms::ui::Box(220, 0, 480-220, 50),
+														  &TestButtonUI::fb1, ms::ui::el::FocusableButton::LayoutParams(ms::ui::Box(200, 70, 90, 25), 1),
+														  &TestButtonUI::fb2, ms::ui::el::FocusableButton::LayoutParams(ms::ui::Box(200, 100, 90, 25), 2));
 private:
 	char textbuf[32] {};
 	int i = 0;
@@ -43,7 +49,10 @@ public:
 		button2("Button 2", ms::ui::el::Button::Callback::create(*this, &TestButtonUI::cb2)),
 		button3("Big button 3", ms::ui::el::Button::Callback::create(*this, &TestButtonUI::cb3)),
 		button4("ARDS", ms::ui::el::Button::Callback::create(*this, &TestButtonUI::cb3)),
-		label_counter(textbuf, 0xfc)
+		fb1("FocusBut a", ms::ui::el::Button::Callback::create(*this, &TestButtonUI::cb1)), 
+		fb2("FocusBut b", ms::ui::el::Button::Callback::create(*this, &TestButtonUI::cb2)),
+		label_counter(textbuf, 0xfc),
+		label_static("TestButtonUI", 0xff)
 	{
 		// Other init stuff etc.
 		strcpy(textbuf, "Nothin.");
@@ -63,6 +72,10 @@ public:
 			}
 		}
 		return true;
+	}
+
+	bool handle(const ms::evt::KeyEvent& evt) override {
+		return layout.handle(*this, evt);
 	}
 
 	void draw_bg(const ms::ui::Box& box) override {
@@ -123,7 +136,7 @@ int main() {
 	status("Initializing input...");
 	ms::in::init();
 	status("Setting up UI...");
-	util::delay(100); // TODO: remove me when there's more loading tasks... lol
+	util::delay(500); // TODO: remove me when there's more loading tasks... lol
 	ms::ui::ui_16_font = ui_font; // set ui font
 
 	// TODO: read previous UI state / serialize UI state and start the correct UI
