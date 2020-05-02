@@ -61,10 +61,19 @@ namespace ms::in {
 
 		fall_edge = is_pressed;
 	}
+
+	void poll_buttons() {
+		periph::ui::poll();
+		for (int i = 0; i < 24; ++i) {
+			if (periph::ui::buttons_pressed & (1 << i)) evt::dispatch(evt::KeyEvent{true, static_cast<periph::ui::button>(i)});
+			if (periph::ui::buttons_released & (1 << i)) evt::dispatch(evt::KeyEvent{false, static_cast<periph::ui::button>(i)});
+		}
+	}
 }
 
 void ms::in::poll() {
 	poll_touch();
+	poll_buttons();
 }
 
 
