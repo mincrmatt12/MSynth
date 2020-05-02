@@ -38,7 +38,7 @@ namespace periph {
 			FX2
 		};
 
-		extern uint32_t buttons_pressed, buttons_held;
+		extern uint32_t buttons_pressed, buttons_held, buttons_released;
 
 		// Real ordering:
 		// N1 = 0,

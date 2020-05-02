@@ -144,7 +144,7 @@ void periph::ui::set(led which, bool state) {
 }
 
 namespace periph::ui {
-	uint32_t buttons_pressed, buttons_held;
+	uint32_t buttons_pressed, buttons_held, buttons_released;
 };
 
 void periph::ui::poll() {
@@ -163,6 +163,7 @@ void periph::ui::poll() {
 	}
 
 	buttons_pressed = ((old ^ buttons_held) & buttons_held) & ~buttons_pressed;
+	buttons_released = ((~old ^ ~buttons_held) & ~buttons_held) & ~buttons_released;
 }
 
 void periph::setup_ui() {
