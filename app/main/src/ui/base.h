@@ -44,9 +44,6 @@ namespace ms::ui {
 	// In general, focus numbers use 0 for "nothing focused"
 	struct UIFocusMixin {
 		uint16_t currently_focused = 0;
-
-		// TODO: perhaps some "set focus"? it's probably going to go elsewhere though -- the plan
-		// is for callbacks to manage it (or perhaps an arbitrary pointer, idk)
 	};
 
 	// UI ELEMENT HELPERS
@@ -104,7 +101,7 @@ namespace ms::ui {
 	struct FocusLayoutParamsMixin {
 		uint16_t focus_index;
 
-		constexpr FocusLayoutParamsMixin(uint16_t in) : focus_index(in) {}
+		constexpr explicit FocusLayoutParamsMixin(uint16_t in) : focus_index(in) {}
 	};
 
 	// USEFUL ENUMS
