@@ -9,6 +9,10 @@ namespace ms::evt {
 	OpaqueHandler *handlers_global[handler_count_global] = {};
 	OpaqueHandler *handlers_ui[handler_count_ui] = {};
 
+	OpaqueHandler::~OpaqueHandler() {
+		remove(this);
+	}
+
 	template<OpaqueHandler ** ptr, size_t count>
 	inline void add_impl(OpaqueHandler *handler) {
 		for (int i = count - 1; i >= 0; --i) { // add from end for the purpose of ui stacks

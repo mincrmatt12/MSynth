@@ -58,6 +58,7 @@ namespace ms::evt {
 	// Advanced event handling, allows for custom opaque processing. EventHandler does this for you.
 	// All event handlers must be convertable to this.
 	struct OpaqueHandler {
+		~OpaqueHandler();
 		friend void ::ms::evt::dispatch(const void *, int);
 
 	protected:
