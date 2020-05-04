@@ -19,10 +19,8 @@ namespace ms::ui {
 	// Base UI class -- all UIs must inherit from this (since it's used for maintaining a stack of UIs)
 	
 	struct UI { // note the default UI doesn't actually handle any events(!); the reasoning being that some UIs won't need keyboard, so we don't inherit at all.
-		// Construct as appropriate (the default one setus up UI stack stuff)
-		UI() {};
-		// Destruct as appropriate (the default one cleans up event handling and restores the previous UI in the stack)
-		//virtual ~UI() {};
+		// Destruct as appropriate
+		virtual ~UI() {};
 
 		// Called whenever it's time to redraw; this is called _after_ the events are processed usually.
 		virtual void draw() = 0;
