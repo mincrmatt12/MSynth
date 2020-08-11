@@ -19,8 +19,6 @@ SECTIONS {
 	.header : {
 		. = ALIGN(0x4);
 		KEEP(*(.app_header))
-		. = ALIGN(0x200);
-		KEEP(*(.isr_vector)) /* ISR vector table */
 		. = ALIGN(0x4);
 	} >FLASH
 
@@ -32,10 +30,13 @@ SECTIONS {
 		*(.text*)      
 		*(.glue_7)     
 		*(.glue_7t)    
-					   
+
 		KEEP (*(.init)) /* ensure we don't delete constructor data */
 		KEEP (*(.fini))
-					   
+
+		. = ALIGN(0x200);
+		KEEP(*(.isr_vector)) /* ISR vector table (referenced in the header, and aligned to 0x200 bytes) */
+
 		. = ALIGN(4);
 		_etext = .;
 	} >FLASH
