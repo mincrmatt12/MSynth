@@ -8,7 +8,7 @@
 #include <msynth/draw.h>
 #include <msynth/lcd.h>
 
-#include "ui/base.h"
+#include "ui/mgr.h"
 
 int main() {
 	// Setup debug UART
@@ -62,13 +62,19 @@ int main() {
 	status("Setting up UI...");
 	util::delay(100); // TODO: remove me when there's more loading tasks... lol
 	ms::ui::ui_16_font = ui_font; // set ui font
+	status("Loading settings...");
 
 	// TODO: read previous UI state / serialize UI state and start the correct UI
 	// TODO: check if we need to start the SD card
 	
+	status("Opening previous file...");
+	
+	// For now just open the play one.
+	
 	while (1) {
 		util::delay(1);
 		ms::in::poll();
+		ms::ui::mgr::draw();
 	}
 
 	return 0;
