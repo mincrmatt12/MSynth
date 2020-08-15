@@ -185,6 +185,12 @@ namespace ms::synth::jit {
 		inline uint16_t and_register(int target, int operand) {
 			return (0b0100000000 << 6) | ((operand & 0b111) << 3) | (target & 0b111);
 		}
+
+		// BRANCH by pc offset.
+		// offset is shifted right once
+		inline uint16_t branch_offset(int16_t offset) {
+			return (0b11100 << 11) | (offset & 0b11111111111);
+		}
 	}
 
 	template<typename ResultAllocator>
@@ -199,15 +205,16 @@ namespace ms::synth::jit {
 		bool inited_r4 = false;
 
 		auto do_literalpool = [&](){
-			auto it = result.rbegin();
+			int it = result.size()-1;
 			distance_since_last_pool = 0;
 
 			result.push_back(0); // placeholder for jump
-			int jumpcount = 0;
-			uint16_t &jump_insn = result.back();
-			if (reinterpret_cast<uintptr_t>(result.end()) & 0b11) {
+			int jumpcount = -1;
+			int jumploc = it+1;
+			if (reinterpret_cast<uintptr_t>(&*result.end()) & 0b11) {
 				// align to word
-				result.push_back(0);
+				// use a nop here for good measure
+				result.push_back(0b1011111100000000);
 				jumpcount += 1; // divided by 2
 			}
 
@@ -225,17 +232,18 @@ namespace ms::synth::jit {
 
 				// Find the instruction, it will be pointed to by it
 				int target;
-				while (it != result.rend() && !insns::retrieve_literal_pool_placeholder(*it, target)) {
-					++it;
+				while (it != 0 && !insns::retrieve_literal_pool_placeholder(result[it], target)) {
+					--it;
 				}
 				
 				// Update the instruction with the new offset
-				uint16_t &load_insn = *it;
-				*it = insns::load_literal_pool(target, reinterpret_cast<uintptr_t>(&load_insn), reinterpret_cast<uintptr_t>(&value_addr));
+				result[it] = insns::load_literal_pool(target, reinterpret_cast<uintptr_t>(&result[it]), reinterpret_cast<uintptr_t>(&value_addr));
 
 				// Go to the next (previous) instruction
 				++it;
 			}
+
+			result[jumploc] = insns::branch_offset(jumpcount);
 		};
 
 		auto push_instr = [&](auto x) -> uintptr_t {
