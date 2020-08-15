@@ -240,7 +240,7 @@ namespace ms::synth::jit {
 				result[it] = insns::load_literal_pool(target, reinterpret_cast<uintptr_t>(&result[it]), reinterpret_cast<uintptr_t>(&value_addr));
 
 				// Go to the next (previous) instruction
-				++it;
+				--it;
 			}
 
 			result[jumploc] = insns::branch_offset(jumpcount);
