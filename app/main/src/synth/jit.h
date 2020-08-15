@@ -200,6 +200,7 @@ namespace ms::synth::jit {
 
 		auto do_literalpool = [&](){
 			auto it = result.rbegin();
+			distance_since_last_pool = 0;
 
 			result.push_back(0); // placeholder for jump
 			int jumpcount = 0;
@@ -349,5 +350,9 @@ namespace ms::synth::jit {
 		}
 
 		do_literalpool();
+
+		// Ensure we return the r4
+		push_instr(insns::mov(0, 4));
+		push_instr(insns::pop());
 	}
 }
