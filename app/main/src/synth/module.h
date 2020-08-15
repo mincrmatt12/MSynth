@@ -176,12 +176,6 @@ namespace ms::synth {
 		return detail::InOutHolder<ModuleOutput, sizeof...(Ts)>(ts...);
 	}
 
-	// Create an input with a name and pointer with undefined min/max
-	template<typename Cfg>
-	constexpr auto make_input(const char * name, float Cfg::* ptr) {
-		return make_input(name, ptr, std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN());
-	}
-
 	// Create an input with a name and pointer
 	template<typename Cfg>
 	constexpr auto make_input(const char * name, float Cfg::* ptr, float min, float max) {
@@ -191,6 +185,12 @@ namespace ms::synth {
 		obj.min = min;
 		obj.max = max;
 		return obj;
+	}
+
+	// Create an input with a name and pointer with undefined min/max
+	template<typename Cfg>
+	constexpr auto make_input(const char * name, float Cfg::* ptr) {
+		return make_input<Cfg>(name, ptr, std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN());
 	}
 
 	// Create an output with a name and output pointer
