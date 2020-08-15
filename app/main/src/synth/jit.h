@@ -97,7 +97,7 @@ namespace ms::synth::jit {
 
 			uintptr_t effective_offset = addr_literal - ((addr_insn + 4) & ~0b11u);
 			effective_offset >>= 2; // encoding
-			return (0b01001 << 11) /* opcode */ | (target & 0b111) << 8 /* Rt */ | effective_offset & 0xff;
+			return (0b01001u << 11) /* opcode */ | (uint16_t(target & 0b111) << 8) /* Rt */ | (effective_offset & 0xff);
 		}
 
 		uint16_t load_literal_pool_placeholder(int target) {
