@@ -69,6 +69,73 @@ namespace ms::in {
 			if (periph::ui::buttons_released & (1 << i)) evt::dispatch(evt::KeyEvent{false, static_cast<periph::ui::button>(i)});
 		}
 	}
+
+	void on_midi_data(void *src, uint8_t * data, size_t length) {
+		// TODO: check src
+
+		// TODO: actually delegate this and parse messages properly. perhaps nmfu might
+		// be useful here?
+
+
+	}
+
+	void poll_usb() {
+		static bool was_connected = false;
+		// Check for connection
+		if (!was_connected && usb_host.inserted()) {
+			// Try to initialize it
+			auto result = usb_host.init_periph();
+			switch (result) {
+				case usb::init_status::Ok:
+					break;
+				case usb::init_status::NotSupported:
+				case usb::init_status::TxnErrorDuringEnumeration:
+				case usb::init_status::Timeout:
+				case usb::init_status::DeviceInitError:
+					{
+						printf("usb init err %d\n", result);
+						// Fire off an event
+						evt::dispatch(evt::HardwareFaultEvent{
+							result == usb::init_status::NotSupported ? evt::HardwareFaultEvent::FaultUsbUnsupported : evt::HardwareFaultEvent::FaultUsbEnumerationError
+						});
+					}
+				case usb::init_status::NotInserted:
+					return;
+			}
+			// Get the device info
+			usb::helper::DeviceInfo di = usb_host.info();
+			// Initialization was OK, check which type of device it is
+			if (usb_host.inserted<usb::MidiDevice>()) {
+				// Fire off a devicestate event
+				evt::DeviceStateEvent ev;
+				ev.name = di.product_name;
+				ev.vendor = di.vendor_name;
+				ev.source = evt::DeviceStateEvent::SourceUSB;
+				ev.target = evt::DeviceStateEvent::InputMIDI;
+				evt::dispatch(ev);
+				// Connect midi device callback
+				usb_host.dev<usb::MidiDevice>().set_callback(usb::MidiDevice::EventCallback::create(on_midi_data));
+			}
+			else {
+				// TODO
+				puts("usb todo");
+			}
+
+			was_connected = true;
+		}
+		// Check for disconnection
+		if (was_connected && !usb_host.inserted()) {
+			// TODO
+			was_connected = false;
+			return;
+		}
+			
+		if (!was_connected) return;
+		if (usb_host.inserted<usb::MidiDevice>()) {
+			// update midi data
+			usb_host.dev<usb::MidiDevice>().update();
+		}
+	}
 }
 
 void ms::in::poll() {
