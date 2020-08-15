@@ -107,6 +107,16 @@ namespace ms::evt {
 		const char * vendor;
 	};
 
+	struct HardwareFaultEvent {
+		const static inline int id = 6;
+
+		enum {
+			FaultUsbEnumerationError,
+			FaultUsbOvercurrent,
+			FaultUsbUnsupported
+		} error;
+	};
+
 	struct FocusEvent {
 		// Virtual event; only used internally within the UI system, which doesn't have polymorphic handling.
 
