@@ -220,33 +220,47 @@ namespace ms::synth::jit {
 			result.push_back(0); // placeholder for jump
 			int jumpcount = -1;
 			int jumploc = it+1;
+			int literalpool_start = it+2;
 			if (reinterpret_cast<uintptr_t>(&*result.end()) & 0b11) {
 				// align to word
 				// use a nop here for good measure
 				result.push_back(0b1011111100000000);
 				jumpcount += 1; // divided by 2
+				literalpool_start += 1;
 			}
 
 			while (!literalpool.empty()) {
 				uint32_t value = literalpool.back();
 				literalpool.pop_back();
+				uint16_t* value_addr = nullptr;
+				
+				// Is this value already in this pool?
+				for (int i = literalpool_start; i < result.size(); i+=2) {
+					if ((static_cast<uint32_t>(result[i]) | (static_cast<uint32_t>(result[i + 1]) << 16)) == value) {
+						value_addr = &result[i];
+						break;
+					}
+				}
 
-				// Add literal value: little-endian system so the low word goes first
-				result.push_back(value & 0xffff);
-				uint16_t& value_addr = result.back();
-				result.push_back(value >> 16);
+				// No:
+				if (value_addr == nullptr) {
+					// Add it to the pool
+					result.push_back(value & 0xffff);
+					value_addr = &result.back();
+					result.push_back(value >> 16);
 
-				// Increment jump count
-				jumpcount += 2;
+					// Increment jump count
+					jumpcount += 2;
+				}
 
-				// Find the instruction, it will be pointed to by it
+				// Find the instruction that we need to patch, it will be pointed to by it
 				int target;
 				while (it != 0 && !insns::retrieve_literal_pool_placeholder(result[it], target)) {
 					--it;
 				}
 				
 				// Update the instruction with the new offset
-				result[it] = insns::load_literal_pool(target, reinterpret_cast<uintptr_t>(&result[it]), reinterpret_cast<uintptr_t>(&value_addr));
+				result[it] = insns::load_literal_pool(target, reinterpret_cast<uintptr_t>(&result[it]), reinterpret_cast<uintptr_t>(value_addr));
 
 				// Go to the next (previous) instruction
 				--it;
