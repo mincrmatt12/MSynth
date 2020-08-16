@@ -122,6 +122,11 @@ namespace ms::synth::jit {
 			return (0b01101) << 11 /* not really opcode but effectively is */ | (offset & 0b11111) << 6 |
 				(source & 0b111) << 3 | (target & 0b111);
 		}
+
+		// LOAD-OFFSET-REG
+		inline uint16_t load_reg_reg_offset(int target, int source1, int source2) {
+			return (0b0101100 << 9) | ((source2 & 0b111) << 6) | ((source1 & 0b111) << 3) | (target & 0b111);
+		}
 		
 		// LOAD-OFFSET-EXT: load a value from an offset from a register with 12bit offset.
 		inline uint32_t load_12bit_reg_offset(int target, int source, uint16_t offset) {
@@ -134,6 +139,10 @@ namespace ms::synth::jit {
 		inline uint16_t store_5bit_reg_offset(int target, int source, uint8_t offset=0) {
 			return (0b01100) << 11 /* not really opcode but effectively is */ | (offset & 0b11111) << 6 |
 				(source & 0b111) << 3 | (target & 0b111);
+		}
+
+		inline uint16_t store_reg_reg_offset(int target, int source1, int source2) {
+			return (0b0101000 << 9) | ((source2 & 0b111) << 6) | ((source1 & 0b111) << 3) | (target & 0b111);
 		}
 		
 		// STORE-OFFSET-EXT: store a value from an offset from a register with 12bit offset.
@@ -254,13 +263,14 @@ namespace ms::synth::jit {
 				distance_since_last_pool += 2;
 			}
 			else {
+				// 32-bit instructions are really handled as 2 16-bit words so we push the high word first
 				result.push_back(static_cast<uint16_t>(x >> 16));
 				result.push_back(static_cast<uint16_t>(x));
 				ret = reinterpret_cast<uintptr_t>(&result.back()) - 2;
 				distance_since_last_pool += 4;
 			}
 
-			if (distance_since_last_pool > 1000 || literalpool.size() > 31) {
+			if (distance_since_last_pool > (1000 - literalpool.size() * 4) || literalpool.size() > 31) {
 				do_literalpool();
 			}
 
@@ -297,8 +307,7 @@ namespace ms::synth::jit {
 					else {
 						// No shift since it's 0
 						push_instr(insns::movw(7, pins.advance_or_result_offset));
-						push_instr(insns::add_register(7, 5));
-						push_instr(insns::store_5bit_reg_offset(8, 7));
+						push_instr(insns::store_reg_reg_offset(8, 5, 7));
 					}
 					break;
 				case PsuedoInstruction::OpcodeAdvanceDynConfig:
@@ -322,8 +331,7 @@ namespace ms::synth::jit {
 					else {
 						// Use add-form
 						push_instr(insns::movw(6, pins.source_offset));
-						push_instr(insns::add_register(6, 5));
-						push_instr(insns::load_5bit_reg_offset(6, 6));
+						push_instr(insns::load_reg_reg_offset(6, 5, 6));
 					}
 					// STORE FROM REG 6
 					if (!(pins.target_offset & 0b11) && (pins.target_offset < (256 << 2))) {
@@ -337,8 +345,7 @@ namespace ms::synth::jit {
 					else {
 						// Use add-form
 						push_instr(insns::movw(7, pins.target_offset));
-						push_instr(insns::add_register(7, 5));
-						push_instr(insns::store_5bit_reg_offset(6, 7));
+						push_instr(insns::store_reg_reg_offset(6, 5, 7));
 					}
 					break;
 				case PsuedoInstruction::OpcodeRunModule:
