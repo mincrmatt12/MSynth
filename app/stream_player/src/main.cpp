@@ -9,7 +9,7 @@
 #include <msynth/sd.h>
 #include <msynth/fs.h>
 
-#define BUFSIZE 5120
+#define BUFSIZE 8192
 
 ISR(SDIO) {
 	sd::sdio_interrupt();
@@ -196,18 +196,19 @@ retry:
 	memset(buffers[0], 0, sizeof(buffers[0]));
 	memset(buffers[1], 0, sizeof(buffers[1]));
 
+restart:
 	output("Starting");
-	pos = (BUFSIZE/256);
-	if (sd::read(0, buffers[0], BUFSIZE/256) != sd::access_status::Ok) {
+	if (sd::read(pos, buffers[0], BUFSIZE/256) != sd::access_status::Ok) {
 		output("R1 fail");
 		util::delay(50);
 		goto retry;
 	}
-	if (sd::read(BUFSIZE/256, buffers[1], BUFSIZE/256) != sd::access_status::Ok) {
+	if (sd::read(pos+BUFSIZE/256, buffers[1], BUFSIZE/256) != sd::access_status::Ok) {
 		output("R2 fail");
 		util::delay(50);
 		goto retry;
 	}
+	pos += (BUFSIZE/256);
 	output("Read 16k samples");
 	output("Starting audio player!");
 	sound::init();
@@ -223,6 +224,8 @@ retry:
 
 		auto old = voltagediv;
 		voltagediv = std::round(current);
+
+		if (!LL_DMA_IsEnabledStream(DMA1, LL_DMA_STREAM_4)) goto restart;
 	}
 
 	return 0;
