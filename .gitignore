@@ -5,3 +5,4 @@ _*fs/
 */compile_commands.json
 *.clangd*
 *.ccls*
+*.cache*
