@@ -18,9 +18,23 @@
 #include <utility>
 
 namespace ms::synth {
+	// These constants can be used in place of a name to indicate an always connected input.
+	namespace predef {
+		enum AutoName : uint32_t {
+			AutoOnTime = 0xffff0000,
+			AutoVelocity = 0xffff0001,
+			AutoFrequency = 0xffff0002,
+			AutoReleaseTime = 0xffff0003
+		};
+	};
+
 	struct ModuleInput {
-		// The name of this input, as seen in the UI
-		const char * name = nullptr;
+		union {
+			// The name of this input, as seen in the UI
+			const char * name = nullptr;
+			// The predefined name (which is just a special pointer to get around constexpr rules)
+			predef::AutoName autoname;
+		};
 		// Offset into the dynconfiguration blob that this input occupies
 		uintptr_t offset = -1; // effectively castable to a (CfgBlock::*float), but really just offsetof(T, val)
 		
@@ -132,10 +146,27 @@ namespace ms::synth {
 		return obj;
 	}
 
+	// Create an input with an autoname and pointer
+	template<typename Cfg>
+	constexpr auto make_input(predef::AutoName autoname, float Cfg::* ptr, float min, float max) {
+		ModuleInput obj;
+		obj.autoname = autoname;
+		obj.offset = detail::offset_from_memberptr(ptr);
+		obj.min = min;
+		obj.max = max;
+		return obj;
+	}
+
 	// Create an input with a name and pointer with undefined min/max
 	template<typename Cfg>
 	constexpr auto make_input(const char * name, float Cfg::* ptr) {
 		return make_input<Cfg>(name, ptr, std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN());
+	}
+
+	// Create an input with an autoname and pointer with undefined min/max
+	template<typename Cfg>
+	constexpr auto make_input(predef::AutoName autoname, float Cfg::* ptr) {
+		return make_input<Cfg>(autoname, ptr, std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN());
 	}
 
 	// Create an output with a name and output storage
@@ -194,14 +225,6 @@ namespace ms::synth {
 			outputs.data
 		};
 	}
-
-	// These constants can be used in place of a name to indicate an always connected input.
-	namespace predef {
-		inline const char * OnTime = reinterpret_cast<const char *>(0xffff0000);
-		inline const char * Velocity = reinterpret_cast<const char *>(0xffff0001);
-		inline const char * Frequency = reinterpret_cast<const char *>(0xffff0002);
-		inline const char * ReleaseTime = reinterpret_cast<const char *>(0xffff0003);
-	};
 
 	/* Sample module: 
 		namespace square {
