@@ -40,7 +40,7 @@ namespace ms::synth::playback {
 		int16_t generate() override {
 			int16_t total = 0;
 			for (size_t i = 0; i < Channels; ++i) {
-				if (cut_voices[i]) continue;
+				if (cut_voices[i] && voices[i]->released_time() != -1.f) continue;
 				if (voices[i]) total += voices[i]->generate(cut_voices[i]);
 			}
 		}
