@@ -49,10 +49,10 @@ void ms::synth::Patch::remove_module(const ModuleHolder *&& rmv_mod) {
 	modules.erase(std::find_if(modules.begin(), modules.end(), [&](const auto& x){return x.get() == rmv_mod;}));
 }
 const ms::synth::Patch::ModuleHolder * ms::synth::Patch::add_module(std::unique_ptr<ModuleHolder>&& module) {
-	modules.emplace_back(module);
+	modules.emplace_back(std::move(module));
 	// Automatically link up any auto-names
-	for (size_t i = 0; i < module->mod->input_count; ++i) {
-		switch (module->mod->inputs[i].autoname) {
+	for (size_t i = 0; i < modules.back()->mod->input_count; ++i) {
+		switch (modules.back()->mod->inputs[i].autoname) {
 			case predef::AutoFrequency:
 				link_modules(predef::ModuleRefGlobalIn, modules.back().get(), predef::GlobalInPitchIdx, i);
 				break;
