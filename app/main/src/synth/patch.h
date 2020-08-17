@@ -26,7 +26,7 @@ namespace ms::synth {
 		// Represents a single input link
 		struct ModuleLink {
 			uint16_t target_idx, source_idx;
-			ModuleHolder *source;
+			const ModuleHolder *source;
 		};
 
 		// Represents a single instance of a module in a program/patch
