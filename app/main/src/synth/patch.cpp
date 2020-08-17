@@ -48,3 +48,26 @@ void ms::synth::Patch::remove_module(const ModuleHolder *&& rmv_mod) {
 	// Remove module
 	modules.erase(std::find_if(modules.begin(), modules.end(), [&](const auto& x){return x.get() == rmv_mod;}));
 }
+const ms::synth::Patch::ModuleHolder * ms::synth::Patch::add_module(std::unique_ptr<ModuleHolder>&& module) {
+	modules.emplace_back(module);
+	// Automatically link up any auto-names
+	for (size_t i = 0; i < module->mod->input_count; ++i) {
+		switch (module->mod->inputs[i].autoname) {
+			case predef::AutoFrequency:
+				link_modules(predef::ModuleRefGlobalIn, modules.back().get(), predef::GlobalInPitchIdx, i);
+				break;
+			case predef::AutoVelocity:
+				link_modules(predef::ModuleRefGlobalIn, modules.back().get(), predef::GlobalInVelocityIdx, i);
+				break;
+			case predef::AutoOnTime:
+				link_modules(predef::ModuleRefGlobalIn, modules.back().get(), predef::GlobalInOnTimeIdx, i);
+				break;
+			case predef::AutoReleaseTime:
+				link_modules(predef::ModuleRefGlobalIn, modules.back().get(), predef::GlobalInOffTimeIdx, i);
+				break;
+			default:
+				continue; // not an autoname
+		}
+	}
+	return modules.back().get();
+}

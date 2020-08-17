@@ -64,10 +64,7 @@ namespace ms::synth {
 			std::vector<ModuleLink>     links;
 		};
 
-		const ModuleHolder * add_module(std::unique_ptr<ModuleHolder>&& module) {
-			modules.emplace_back(module);
-			return modules.back().get();
-		}
+		const ModuleHolder * add_module(std::unique_ptr<ModuleHolder>&& module); 
 
 		inline const auto& all_modules() const {
 			return modules;
