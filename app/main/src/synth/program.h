@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <vector>
+#include "patch.h"
 
 namespace ms::synth {
 	struct Program;
@@ -70,6 +71,13 @@ namespace ms::synth {
 		Voice* new_voice();
 
 		friend Voice;
+
+		// Create a new program.
+		//
+		// If patch is modified after this point in _any way_ this instance is completely useless and dangerous to use.
+		// 
+		// This constructor does allocate quite a lot of temporary stuff in addition to the 
+		Program(const Patch& patch);
 	private:
 		// TODO: check if there's a better datatype to use here? in terms of size/speed/etc.
 
@@ -79,10 +87,16 @@ namespace ms::synth {
 		//
 		// yes it's stored in a vector, don't you store your bytecode in a vector?
 		// no?
-		std::vector<uint16_t>  compiled_procedure;
+		std::vector<uint16_t> compiled_procedure;
 
 		// only 8 bits for packing/size reasons
 		uint8_t pitch_end, velocity_end, time_end;
+		
+		// the fully assembled dyncfg
+		std::unique_ptr<uint32_t[]> dyncfg_original;
+
+		// size of assembled dyncfg
+		size_t dyncfg_original_len;
 		
 		bool generate(float *out, void *dyncfg_blob) const;
 		void set_pitch(float pitch, void *dyncfg_blob) const;
