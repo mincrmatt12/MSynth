@@ -18,7 +18,6 @@
 #include <utility>
 
 namespace ms::synth {
-
 	struct ModuleInput {
 		// The name of this input, as seen in the UI
 		const char * name = nullptr;
@@ -55,60 +54,6 @@ namespace ms::synth {
 		// Pointer to descriptors for inputs and outputs
 		const ModuleInput * const inputs; 
 		const ModuleOutput * const outputs;
-	};
-
-	// Represents a single instance of a module in a program/patch
-	//
-	// This is designed to be stored in a Patch and referred to (usually through a vector reference)
-	//
-	struct ModuleHolder {
-		const ModuleBase *mod;
-
-		void * configuration = nullptr;
-		void * dynamic_configuration = nullptr;
-
-		ModuleHolder(const ModuleBase& mod) :
-			mod(&mod) {
-
-			configuration = malloc(mod.cfg_size);
-			dynamic_configuration = malloc(mod.dyncfg_size);
-		}
-
-		ModuleHolder(const ModuleBase& mod, const void * config, const void * dynamic_config) :
-			ModuleHolder(mod) {
-
-			memcpy(configuration, config, mod.cfg_size);
-			memcpy(dynamic_configuration, dynamic_config, mod.dyncfg_size);
-		}
-
-		~ModuleHolder() {
-			free(configuration);
-			free(dynamic_configuration);
-		}
-
-		ModuleHolder(const ModuleHolder &c) :
-			ModuleHolder(*c.mod, c.configuration, c.dynamic_configuration) {
-		}
-
-		ModuleHolder(ModuleHolder&& other) :
-			mod(other.mod) {
-			std::swap(configuration, other.configuration);
-			std::swap(dynamic_configuration, other.dynamic_configuration);
-		}
-
-		ModuleHolder& operator=(ModuleHolder other) {
-			mod = other.mod;
-			std::swap(other.configuration, configuration);
-			std::swap(other.dynamic_configuration, dynamic_configuration);
-			return *this;
-		}
-
-		ModuleHolder& operator=(ModuleHolder &&other) {
-			mod = other.mod;
-			std::swap(other.configuration, configuration);
-			std::swap(other.dynamic_configuration, dynamic_configuration);
-			return *this;
-		}
 	};
 
 	namespace detail {
