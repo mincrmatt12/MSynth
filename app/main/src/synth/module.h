@@ -138,9 +138,9 @@ namespace ms::synth {
 		return make_input<Cfg>(name, ptr, std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN());
 	}
 
-	// Create an output with a name and output pointer
+	// Create an output with a name and output storage
 	template<typename Cfg>
-	constexpr auto make_output(const char * name, float *Cfg::* ptr) {
+	constexpr auto make_output(const char * name, float Cfg::* ptr) {
 		ModuleOutput obj;
 		obj.name = name;
 		obj.offset = detail::offset_from_memberptr(ptr);
@@ -152,7 +152,7 @@ namespace ms::synth {
 
 	// Create an output with a name, output pointer and metadata references
 	template<typename Cfg>
-	constexpr auto make_output(const char * name, float *Cfg::* ptr, float Cfg::* ptr_min, float Cfg::* ptr_max,
+	constexpr auto make_output(const char * name, float Cfg::* ptr, float Cfg::* ptr_min, float Cfg::* ptr_max,
 			bool Cfg::* ptr_enabled) {
 		ModuleOutput obj;
 		obj.name = name;
