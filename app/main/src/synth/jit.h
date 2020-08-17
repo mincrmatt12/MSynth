@@ -84,7 +84,7 @@ namespace ms::synth::jit {
 		// of the literal pool entry to load. These addresses are 2*index_in_result + result.data.
 		//
 		// The register to load into is passed as it's number
-		uint16_t load_literal_pool(int target, uintptr_t addr_insn, uintptr_t addr_literal) {
+		static uint16_t load_literal_pool(int target, uintptr_t addr_insn, uintptr_t addr_literal) {
 			// Because ARM thumb mode is weird the effective PC is
 			// (addr_insn + 4) word aligned
 			//
@@ -100,11 +100,11 @@ namespace ms::synth::jit {
 			return (0b01001u << 11) /* opcode */ | (uint16_t(target & 0b111) << 8) /* Rt */ | (effective_offset & 0xff);
 		}
 
-		uint16_t load_literal_pool_placeholder(int target) {
+		static uint16_t load_literal_pool_placeholder(int target) {
 			return (0b101101100100'0000) | (target & 0b1111); // this is an "unpredictable instruction"
 		}
 
-		bool retrieve_literal_pool_placeholder(uint16_t insn, int &target_out) {
+		static bool retrieve_literal_pool_placeholder(uint16_t insn, int &target_out) {
 			if ((insn >> 4) == 0b101101100100) {
 				target_out = insn & 0b1111;
 				return true;
@@ -203,7 +203,7 @@ namespace ms::synth::jit {
 	}
 
 	template<typename ResultAllocator>
-	void assemble(std::vector<uint16_t, ResultAllocator> &result, std::ranges::view auto instructions) {
+	void assemble(std::vector<uint16_t, ResultAllocator> &result, const std::ranges::range auto& instructions) {
 		// Ensure the result is clear
 		result.clear();
 
