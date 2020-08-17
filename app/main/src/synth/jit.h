@@ -38,7 +38,7 @@ namespace ms::synth::jit {
 	// 	CopyFloat <src> <target>
 	// 		Copy the value at DynCfgOffset+src to DynCfgOffset+target 
 	// 	LoadResult <offset>
-	// 		Load the result pointer into the output specified as DynCfgOffset+offset
+	// 		Copy the value at DynCfgOffset+offset into the result pointer
 	//
 	// All offsets are in bytes.
 	struct PsuedoInstruction {
@@ -313,16 +313,22 @@ namespace ms::synth::jit {
 					push_instr(insns::load_literal_pool_placeholder(0));
 					break;
 				case PsuedoInstruction::OpcodeLoadResult:
-					if (pins.advance_or_result_offset <= 0b1111'1111'1111) {
-						// No shift for extended form
-						// Can't use 5-bit form because register 8 > 7
-						push_instr(insns::store_12bit_reg_offset(8, 5, pins.advance_or_result_offset));
+					// LOAD TO REG 6
+					if (!(pins.advance_or_result_offset & 0b11) && (pins.advance_or_result_offset < (256 << 2))) {
+						// We can use 5-bit form
+						push_instr(insns::load_5bit_reg_offset(6, 5, (pins.advance_or_result_offset >> 2)));
+					}
+					else if (pins.advance_or_result_offset <= 0b1111'1111'1111) {
+						// We can use 12-bit form
+						push_instr(insns::load_12bit_reg_offset(6, 5, pins.advance_or_result_offset));
 					}
 					else {
-						// No shift since it's 0
-						push_instr(insns::movw(7, pins.advance_or_result_offset));
-						push_instr(insns::store_reg_reg_offset(8, 5, 7));
+						// Use add-form
+						push_instr(insns::movw(6, pins.advance_or_result_offset));
+						push_instr(insns::load_reg_reg_offset(6, 5, 6));
 					}
+					// Write into register 8
+					push_instr(insns::store_12bit_reg_offset(6, 8, 0));
 					break;
 				case PsuedoInstruction::OpcodeAdvanceDynConfig:
 					if (pins.advance_or_result_offset < 256) push_instr(insns::add_immediate_8bit(5, pins.advance_or_result_offset));
