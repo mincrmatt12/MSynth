@@ -28,3 +28,32 @@ int16_t ms::synth::Voice::generate(bool &cut_note) {
 	
 	return result * INT16_MAX;
 }
+
+bool ms::synth::Program::generate(float *result, void *blob) const {
+	// Call the procedure
+	return ((bool (*)(float *, void *))(this->compiled_procedure.data()))(result, blob);
+}
+
+namespace {
+inline void set_x(float v, void *blob, const std::vector<uintptr_t>& dat, uint8_t i, uint8_t i2) {
+	for (; i < i2; ++i) {
+		*reinterpret_cast<float *>(reinterpret_cast<uintptr_t>(blob) + dat[i]) = v;
+	}
+}
+}
+
+void ms::synth::Program::set_pitch(float v, void *blob) const {
+	set_x(v, blob, this->offset_pool, 0, this->pitch_end);
+}
+
+void ms::synth::Program::set_velocity(float v, void *blob) const {
+	set_x(v, blob, this->offset_pool, this->pitch_end, this->velocity_end);
+}
+
+void ms::synth::Program::set_time(float v, void *blob) const {
+	set_x(v, blob, this->offset_pool, this->velocity_end, this->time_end);
+}
+
+void ms::synth::Program::set_off_time(float v, void *blob) const {
+	set_x(v, blob, this->offset_pool, this->time_end, this->offset_pool.size());
+}

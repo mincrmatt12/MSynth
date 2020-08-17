@@ -16,6 +16,7 @@
 #include <utility>
 #include <stdlib.h>
 #include <stdint.h>
+#include <vector>
 
 namespace ms::synth {
 	struct Program;
@@ -70,6 +71,18 @@ namespace ms::synth {
 
 		friend Voice;
 	private:
+		// TODO: check if there's a better datatype to use here? in terms of size/speed/etc.
+
+		// Offsets that set_pitch and friends need
+		std::vector<uintptr_t> offset_pool;
+		// The compiled program
+		//
+		// yes it's stored in a vector, don't you store your bytecode in a vector?
+		// no?
+		std::vector<uint16_t>  compiled_procedure;
+
+		// only 8 bits for packing/size reasons
+		uint8_t pitch_end, velocity_end, time_end;
 		
 		bool generate(float *out, void *dyncfg_blob) const;
 		void set_pitch(float pitch, void *dyncfg_blob) const;
