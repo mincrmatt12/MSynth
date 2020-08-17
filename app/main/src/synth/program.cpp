@@ -4,6 +4,7 @@
 
 void ms::synth::Voice::reset_time() {
 	on_time = 0.0f;
+	off_time = -1.f;
 	program.set_off_time(-1.f, dyncfg_blob);
 	original_pitch = -1.f;
 }

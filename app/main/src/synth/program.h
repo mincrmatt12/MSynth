@@ -52,14 +52,15 @@ namespace ms::synth {
 
 		const float& pitch() {return original_pitch;}
 		const float& held_time() {return on_time;}
+		const float& released_time() {return off_time;}
 
 	private:
 		const Program& program;
-		float on_time, original_pitch;
+		float on_time, original_pitch, off_time;
 		void *dyncfg_blob = nullptr;
 
 		Voice(const Program& program, void *dyncfg_blob) : program(program),
-			on_time(0.0f), original_pitch(-1.f), dyncfg_blob(dyncfg_blob) {
+			on_time(0.0f), original_pitch(-1.f), off_time(-1.f), dyncfg_blob(dyncfg_blob) {
 		}
 	};
 	
