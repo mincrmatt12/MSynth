@@ -39,6 +39,7 @@ namespace ms::ui::mgr {
 		}
 
 		for (int i = 0; i < 8; ++i) {
+			if (ui_stack[i] == nullptr) return;
 			// If this is the topmost entry
 			if (i == 7 || ui_stack[i+1] == nullptr) {
 				if (to_close_bitfield) {
