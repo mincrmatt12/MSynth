@@ -19,7 +19,9 @@ namespace ms::synth::playback {
 
 	template<size_t Channels> // this could be heap'd, but at that point i'm going to be fragmenting everything
 	struct LivePlayback : evt::EventHandler<evt::MidiEvent>, AudioGenerator {
-		LivePlayback(/*const Patch &patch*/);
+		LivePlayback(const Patch &patch) :
+			patch(patch)
+		{}
 
 		bool handle(const evt::MidiEvent& evt) override {
 			switch (evt.type) {
