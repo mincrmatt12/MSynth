@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.3)
 project(app C CXX ASM)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../framework/build.cmake)  # point at the right dir
-
 set(MSYNTH_USE_FPU ON)
+
+include(${CMAKE_CURRENT_LIST_DIR}/../framework/build.cmake)  # point at the right dir
 
 # setup an APP
 add_app(
