@@ -1,0 +1,6 @@
+[submodule "gcem"]
+	path = vendor/gcem
+	url = https://github.com/kthohr/gcem.git
+[submodule "vendor/gcem"]
+	path = vendor/gcem
+	url = https://github.com/kthohr/gcem.git
