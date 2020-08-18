@@ -75,8 +75,20 @@ namespace ms::in {
 
 		// TODO: actually delegate this and parse messages properly. perhaps nmfu might
 		// be useful here?
+		// currently, we just take advantage of the fact that the midi messages are _usually_ prepackaged
+		
+		ms::evt::MidiEvent evt;
 
+		// TODO: check channel
+		if ((data[0] == 0x90 || data[0] == 0x80) && length >= 3) {
+			// Note on
+			evt.type = data[0] == 0x90 ? evt::MidiEvent::TypeNoteOn : evt::MidiEvent::TypeNoteOff;
+			evt.note.note = data[1];
+			evt.note.velocity = data[2];
 
+			ms::evt::dispatch(evt);
+		}
+		// TODO: other messages
 	}
 
 	void poll_usb() {
