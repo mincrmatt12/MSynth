@@ -8,7 +8,7 @@
 #include <cstddef>
 
 namespace ms::audio {
-	constexpr inline size_t master_buffer_sample_count = 512;
+	constexpr inline size_t master_buffer_sample_count = 300;
 
 	int16_t master_sample_buffer[2][master_buffer_sample_count * 2]{}; // *2 for stereo panning.
 
@@ -31,7 +31,7 @@ namespace ms::audio {
 		LL_DMA_ClearFlag_TC4(DMA1);
 
 		// Generate the next bunch of samples
-		int16_t * buf = LL_DMA_GetCurrentTargetMem(DMA1, LL_DMA_STREAM_4) == LL_DMA_CURRENTTARGETMEM1 ? master_sample_buffer[1] : master_sample_buffer[0];
+		int16_t * buf = LL_DMA_GetCurrentTargetMem(DMA1, LL_DMA_STREAM_4) == LL_DMA_CURRENTTARGETMEM1 ? master_sample_buffer[0] : master_sample_buffer[1];
 
 		if (!active_generator) {
 			memset(buf, 0, master_buffer_sample_count * sizeof(uint16_t) * 2);
