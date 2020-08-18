@@ -1,5 +1,6 @@
 #include "in.h"
 #include "irq.h"
+#include "audio.h"
 
 #include <stdio.h>
 
@@ -7,6 +8,7 @@
 #include <msynth/periphcfg.h>
 #include <msynth/draw.h>
 #include <msynth/lcd.h>
+#include "synth/module.h"
 
 #include "ui/mgr.h"
 
@@ -59,6 +61,8 @@ int main() {
 	ms::irq::init();
 	status("Initializing input...");
 	ms::in::init();
+	status("Initializing sound...");
+	ms::audio::init();
 	status("Setting up UI...");
 	util::delay(100); // TODO: remove me when there's more loading tasks... lol
 	ms::ui::ui_16_font = ui_font; // set ui font
