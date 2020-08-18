@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.3)
 project(app C CXX ASM)
 
 set(MSYNTH_USE_FPU ON)
+set(COMMON_FLAGS "-ffast-math")
 
 include(${CMAKE_CURRENT_LIST_DIR}/../framework/build.cmake)  # point at the right dir
 
@@ -33,6 +34,9 @@ add_app(
 	FS
 	EEPROM
 )
+
+# add gcem
+target_include_directories(app_main PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../vendor/gcem/include)
 
 # setup an upload target
 create_uploader(
