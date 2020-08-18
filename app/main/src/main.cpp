@@ -10,7 +10,11 @@
 #include <msynth/lcd.h>
 #include "synth/module.h"
 
+#include "synth/modules/waves.h"
+#include "synth/patch.h"
+#include "synth/live.h"
 #include "ui/mgr.h"
+#include "malloc.h"
 
 int main() {
 	// Setup debug UART
@@ -71,15 +75,50 @@ int main() {
 	// TODO: read previous UI state / serialize UI state and start the correct UI
 	// TODO: check if we need to start the SD card
 	
-	status("Opening previous file...");
+	status("Loading patch...");
+
+	// temp: setup a synth
+	ms::synth::Patch patch;
+	{
+		ms::synth::mod::TriangleWave x;
+		ms::synth::mod::TriangleWave::Cfg x_config;
+
+		x.amplitude = 0.05f;
+		x.dc_offset = 0.f;
+
+		const ms::synth::Patch::ModuleHolder *sqw1 = patch.add_module(std::make_unique<ms::synth::Patch::ModuleHolder>(ms::synth::mod::TriModule, &x_config, &x));
 	
-	// For now just open the play one.
+		// Hook up to main output
+		patch.link_modules(sqw1, ms::synth::predef::ModuleRefGlobalOut, 0, 0);
+		// Hook up to dc_offset
+		patch.link_modules(ms::synth::predef::ModuleRefGlobalIn, sqw1, ms::synth::predef::GlobalInPitchIdx, 0);
+	}
+
+	// Create an liveplayback
+	ms::synth::playback::LivePlayback<5> playback(patch);
+
+	// Add it to the event pool
+	ms::evt::add(&playback);
+	// Set it as the source
+	ms::audio::add_source(&playback);
+	// Start audio subsystem
+	ms::audio::set_volume(32767);
+	ms::audio::start();
+	status("Starting main loop...");
+
+	int i =0;
 	
 	while (1) {
+		++i;
 		util::delay(1);
 		ms::in::poll();
 		ms::ui::mgr::draw();
+		if (i % 100) {
+			struct mallinfo g = mallinfo();
+			printf("arena %d; uord %d; ford %d\n", g.arena, g.uordblks, g.fordblks);
+		}
 	}
+
 
 	return 0;
 }
