@@ -16,6 +16,7 @@ void ms::in::init() {
 	periph::setup_midiuart();
 	// Init USB
 	usb_host.init();
+	usb_host.enable();
 	// Start SD controller and enable EXTi
 	sd::init(true, true);
 }
@@ -153,6 +154,7 @@ namespace ms::in {
 void ms::in::poll() {
 	poll_touch();
 	poll_buttons();
+	poll_usb();
 }
 
 
