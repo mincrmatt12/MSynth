@@ -15,6 +15,8 @@
 #include "../evt/events.h"
 #include "util.h"
 
+#include <cmsis_gcc.h>
+
 namespace ms::synth::playback {
 
 	template<size_t Channels> // this could be heap'd, but at that point i'm going to be fragmenting everything
@@ -42,11 +44,11 @@ namespace ms::synth::playback {
 			return true;
 		}
 		int16_t generate() override {
-			int32_t total = 0;
+			int16_t total = 0;
 			for (size_t i = 0; i < Channels; ++i) {
 				if (cut_voices[i] && voices[i]->released_time() != -1.f) continue;
 				if (voices[i]) {
-					total += voices[i]->generate(cut_voices[i]);
+					total = __QADD16(total, voices[i]->generate(cut_voices[i]) / (int16_t)Channels);
 				}
 				if (cut_voices[i] && (voices[i]->released_time() == -1.f)) cut_voices[i] = false;
 			}
