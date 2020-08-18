@@ -1,4 +1,5 @@
 #include "waves.h"
+#include "../util.h"
 #include <cmath>
 #include <cstdio>
 
@@ -9,19 +10,13 @@
 bool ms::synth::mod::SqwWave::generate(const Cfg& config) {
 	if (curr_time == 0) {
 		incstate = 0;
-		output = dc_offset - amplitude;
-		upstate = false;
 	}
-	incstate += (1.f/44100.f);
-	if (upstate && incstate > duty*(1.f/frequency)) {
-		upstate = false;
-		output = dc_offset + amplitude;
-	}
-	else if (!upstate && incstate > (1.f/frequency)) {
-		upstate = true;
-		output = dc_offset - amplitude;
-		incstate -= (1.f/frequency);
-	}
+	incstate += (frequency/44100.f);
+	if (incstate > 1.f) incstate -= 1.f;
+	if (incstate < duty)
+		output = dc_offset - (config.inverted ? -amplitude : amplitude);
+	else
+		output = dc_offset + (config.inverted ? -amplitude : amplitude);
 	
 	return true;
 }
@@ -35,13 +30,23 @@ bool ms::synth::mod::TriangleWave::generate(const Cfg& config) {
 	if (incstate > 1.f) {
 		incstate -= 1.f;
 	}
-	output = dc_offset + amplitude * (1 - fabsf(incstate - 0.5f)*4.f);
+	if (config.inverted) {
+		output = dc_offset - amplitude * (1 - fabsf(incstate - 0.5f)*4.f);
+	}
+	else {
+		output = dc_offset + amplitude * (1 - fabsf(incstate - 0.5f)*4.f);
+	}
 
 	return true;
 }
 
 bool ms::synth::mod::SinWave::generate(const Cfg& config) {
-	output = sinf((static_cast<float>(M_TWOPI) * frequency) * curr_time);
+	if (curr_time == 0) incstate = 0;
+	incstate += (frequency/44100.f);
+	if (incstate > 1.f) {
+		incstate -= 1.f;
+	}
+	output = wavesin(incstate);
 
 	if (config.rectified) {
 		output = fabs(output);

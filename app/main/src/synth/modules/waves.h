@@ -13,7 +13,6 @@ namespace ms::synth::mod {
 	struct SqwWave {
 		struct Cfg {
 			bool inverted;
-			bool centered;
 		};
 		
 		float frequency, amplitude, duty, dc_offset;
@@ -24,12 +23,10 @@ namespace ms::synth::mod {
 
 	private:
 		float incstate;
-		bool  upstate = false;
 	};
 
 	struct TriangleWave {
 		struct Cfg {
-			bool centered;
 			bool inverted;
 		};
 		
@@ -53,6 +50,8 @@ namespace ms::synth::mod {
 		float output;
 
 		bool generate(const Cfg& config);
+	private:
+		float incstate;
 	};
 
 	static constexpr auto SqwInputs = make_inputs(
