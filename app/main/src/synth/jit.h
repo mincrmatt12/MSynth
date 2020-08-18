@@ -310,7 +310,7 @@ namespace ms::synth::jit {
 			switch (pins.opcode) {
 				case PsuedoInstruction::OpcodeLoadConfig:
 					literalpool.push_back(reinterpret_cast<uint32_t>(pins.config_location));
-					push_instr(insns::load_literal_pool_placeholder(0));
+					push_instr(insns::load_literal_pool_placeholder(1));
 					break;
 				case PsuedoInstruction::OpcodeLoadResult:
 					// LOAD TO REG 6
@@ -371,7 +371,7 @@ namespace ms::synth::jit {
 				case PsuedoInstruction::OpcodeRunModule:
 					literalpool.push_back(reinterpret_cast<uint32_t>(pins.proc) | 1); // make sure the thumb bit is set
 					push_instr(insns::load_literal_pool_placeholder(6));
-					push_instr(insns::mov(1, 5));
+					push_instr(insns::mov(0, 5));
 					push_instr(insns::blx(6));
 					if (inited_r4) {
 						push_instr(insns::and_register(4, 0));
