@@ -38,13 +38,19 @@ namespace ms::synth::playback {
 				default:
 					break;
 			}
+
+			return true;
 		}
 		int16_t generate() override {
-			int16_t total = 0;
+			int32_t total = 0;
 			for (size_t i = 0; i < Channels; ++i) {
 				if (cut_voices[i] && voices[i]->released_time() != -1.f) continue;
-				if (voices[i]) total += voices[i]->generate(cut_voices[i]);
+				if (voices[i]) {
+					total += voices[i]->generate(cut_voices[i]);
+				}
+				if (cut_voices[i] && (voices[i]->released_time() == -1.f)) cut_voices[i] = false;
 			}
+			return total;
 		}
 
 		void update() {
@@ -75,7 +81,7 @@ init:
 			i = 0;
 			// Otherwise, replace the earliest one
 			for (size_t j = 0; j < Channels; ++j) {
-				if (voices[j].held_time() > voices[i].held_time()) i = j;
+				if (voices[j]->held_time() > voices[i]->held_time()) i = j;
 			}
 			goto init;
 		}
