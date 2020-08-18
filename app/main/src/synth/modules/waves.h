@@ -92,7 +92,7 @@ namespace ms::synth::mod {
 			make_output("", &SinWave::output)
 	);
 
-	static constexpr auto SinModule = make_module<TriangleWave>(
+	static constexpr auto SinModule = make_module<SinWave>(
 			"sin_wave",
 			SinInputs,
 			SinOutputs
