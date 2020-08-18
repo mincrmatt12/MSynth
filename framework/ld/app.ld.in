@@ -8,9 +8,9 @@ ENTRY(Reset_Handler)
 _estack = 0x10010000; /* end of CCRAM */
 
 MEMORY {
-	RAM (rwx) : ORIGIN = 0x20020000, LENGTH = 64K
+	RAM (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
 	FLASH (rx) : ORIGIN = @sector@, LENGTH = @app_size@K
-	VRAM (rw) : ORIGIN = 0x20000000, LENGTH = 128K
+	VRAM (rw) : ORIGIN = 0x20010000, LENGTH = 128K
 	CCMRAM (rw) : ORIGIN = 0x10000000, LENGTH = 64K
 	BKPRAM (rw) : ORIGIN = 0x40024000, LENGTH = 4K
 }
@@ -102,6 +102,13 @@ SECTIONS {
 		__bss_end__ = _ebss;
 	} >RAM
 
+	.heap :
+	{
+		. = ALIGN(4);
+		PROVIDE(end = .);
+		PROVIDE(_end = .);
+	} >RAM
+
 	/* VRAM */
 	.vram : {
 		. = ALIGN(4);
@@ -121,8 +128,6 @@ SECTIONS {
 
 		. = ALIGN(4);
 		_eccm = .;
-		PROVIDE(end = .);
-		PROVIDE(_end = .);
 	} >CCMRAM AT> FLASH
 	
 	_siccm = LOADADDR(.ccmdata);

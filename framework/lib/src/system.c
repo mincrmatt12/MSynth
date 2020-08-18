@@ -160,20 +160,16 @@ int __attribute__((used)) _write(int file, char *ptr, int len) {
 caddr_t __attribute__((used)) _sbrk(int incr) 
 {
 	extern char end asm("end");
-	static char *heap_end;
-	char *prev_heap_end,*min_stack_ptr;
+	extern char framebuffer_data[272][480];
+	static char *heap_end=0;
+	char *prev_heap_end;
 
 	if (heap_end == 0)
 		heap_end = &end;
 
 	prev_heap_end = heap_end;
 
-	/* Use the NVIC offset register to locate the main stack pointer. */
-	min_stack_ptr = (char*)(*(unsigned int *)*(unsigned int *)0xE000ED08);
-	/* Locate the STACK bottom address */
-	min_stack_ptr -= 0x2000;
-
-	if (heap_end + incr > min_stack_ptr)
+	if (heap_end + incr > (char *)framebuffer_data)
 	{
 		errno = ENOMEM;
 		return (caddr_t) -1;
