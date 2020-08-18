@@ -7,16 +7,35 @@
 // or maybe synth methods should get -ffast-math
 
 bool ms::synth::mod::SqwWave::generate(const Cfg& config) {
-	output = fmod(curr_time, 1.f/frequency) / (1.f/frequency);
-	output = (output < duty) ? -amplitude : amplitude;
-
-	output += dc_offset;
+	if (curr_time == 0) {
+		incstate = 0;
+		output = dc_offset - amplitude;
+		upstate = false;
+	}
+	incstate += (1.f/44100.f);
+	if (upstate && incstate > duty*(1.f/frequency)) {
+		upstate = false;
+		output = dc_offset + amplitude;
+	}
+	else if (!upstate && incstate > (1.f/frequency)) {
+		upstate = true;
+		output = dc_offset - amplitude;
+		incstate -= (1.f/frequency);
+	}
+	
 	return true;
 }
 
 bool ms::synth::mod::TriangleWave::generate(const Cfg& config) {
-#define OOF 100000
-	int period = (1.f/frequency)*OOF;
+	if (curr_time == 0) {
+		incstate = 0;
+	}
+
+	incstate += (frequency/44100.f);
+	if (incstate > 1.f) {
+		incstate -= 1.f;
+	}
+	output = dc_offset + amplitude * (1 - fabsf(incstate - 0.5f)*4.f);
 
 	return true;
 }

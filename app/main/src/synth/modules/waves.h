@@ -21,6 +21,10 @@ namespace ms::synth::mod {
 		float output;
 
 		bool generate(const Cfg& config);
+
+	private:
+		float incstate;
+		bool  upstate = false;
 	};
 
 	struct TriangleWave {
@@ -34,6 +38,8 @@ namespace ms::synth::mod {
 		float output;
 
 		bool generate(const Cfg& config);
+	private:
+		float incstate;
 	};
 
 	struct SinWave {
