@@ -116,7 +116,8 @@ ms::synth::Program::Program(const ms::synth::Patch& patch) {
 																			// having to use a separate deleter with new (std::align_val_t(4)) uint32_t[4]
 	
 	// Now, we initialize the dyncfg with the values from the Patch. Linking the outputs is performed during psuedoinstruction generation
-	for (uint8_t *i = reinterpret_cast<uint8_t *>(this->dyncfg_original.get()); const auto& x : patch.all_modules()) {
+	for (uint8_t *i = reinterpret_cast<uint8_t *>(this->dyncfg_original.get()); const auto& x : ordered_copy) {
+		printf("copying to %p from %p\n", i, x->dynamic_configuration.get());
 		memcpy(i, x->dynamic_configuration.get(), x->mod->dyncfg_size);
 		i += x->mod->dyncfg_size;
 		if (x->mod->dyncfg_size % 4)
