@@ -20,6 +20,7 @@ void ms::synth::Voice::set_pitch(float freq) {
 
 void ms::synth::Voice::mark_off() {
 	program.set_off_time(on_time, dyncfg_blob);
+	off_time = on_time;
 }
 
 int16_t ms::synth::Voice::generate(bool &cut_note) {
@@ -34,7 +35,7 @@ int16_t ms::synth::Voice::generate(bool &cut_note) {
 
 bool ms::synth::Program::generate(float *result, void *blob) const {
 	// Call the procedure
-	return ((bool (*)(float *, void *))(this->compiled_procedure.data()))(result, blob);
+	return ((bool (*)(float *, void *))(((uintptr_t)this->compiled_procedure.data()) | 1))(result, blob);
 }
 
 namespace {
