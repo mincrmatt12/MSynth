@@ -2,6 +2,8 @@
 #include "jit.h"
 #include <algorithm>
 
+#include <stdio.h>
+
 void ms::synth::Voice::reset_time() {
 	on_time = 0.0f;
 	off_time = -1.f;
@@ -87,11 +89,65 @@ void ms::synth::Program::set_off_time(float v, void *blob) const {
 	set_x(v, blob, this->offset_pool, this->time_end, this->offset_pool.size());
 }
 
+void dump_mod(const ms::synth::ModuleBase *modbase) {
+	printf(" name: %s\n", modbase->name);
+	printf(" proc at %p\n", modbase->proc);
+	printf(" cfg size %d; dyncfg size %d\n", modbase->cfg_size, modbase->dyncfg_size);
+	puts(" inputs:");
+	for (size_t i = 0; i < modbase->input_count; ++i) {
+		printf("  id %d\n", i);
+		switch (modbase->inputs[i].autoname) {
+			case ms::synth::predef::AutoFrequency:
+				puts("  name: (auto frequency)");
+				break;
+			case ms::synth::predef::AutoVelocity:
+				puts("  name: (auto velocity)");
+				break;
+			case ms::synth::predef::AutoOnTime:
+				puts("  name: (auto ontime)");
+				break;
+			case ms::synth::predef::AutoReleaseTime:
+				puts("  name: (auto offtime)");
+				break;
+			default:
+				printf("  name: %s\n", modbase->inputs[i].name);
+				break; 
+		}
+		printf("  offset: %04x\n", modbase->inputs[i].offset);
+		printf("  min %f; max %f\n", modbase->inputs[i].min, modbase->inputs[i].max);
+	}
+	puts(" outputs:");
+	for (size_t i = 0; i < modbase->output_count; ++i) {
+		printf("  id %d\n", i);
+		printf("  name: %s\n", modbase->outputs[i].name);
+		printf("  offset: %04x\n", modbase->outputs[i].offset);
+		printf("  offset_en: %04x; offset_min %04x; offset_max %04x\n", modbase->outputs[i].offset_enabled, modbase->outputs[i].offset_min, modbase->outputs[i].offset_max);
+	}
+}
+
+void dump_patch(const ms::synth::Patch &patch) {
+	printf("dump of patch at %p\n", &patch);
+	for (const auto& mod : patch.all_modules()) {
+		puts("---");
+		printf("module at %p\n", mod.get());
+		dump_mod(mod->mod);
+		printf("cfg %p; dyncfg_base %p\n", mod->configuration.get(), mod->dynamic_configuration.get());
+		for (const auto& link : mod->get_links()) {
+			printf("links %p output %d to input %d\n", link.source, link.source_idx, link.target_idx);
+		}
+	}
+	puts("---");
+	printf("patch output is from %p output %d\n", patch.output_source, patch.output_idx);
+}
+
 ms::synth::Program::Program(const ms::synth::Patch& patch) {
 	// The first step in creating the program is to correctly order all of the modules in strictly depth-first order.
 	std::vector<const Patch::ModuleHolder *> ordered_copy;
 	std::vector<jit::PsuedoInstruction>      pinsns;
 	ordered_copy.reserve(patch.all_modules().size());
+
+	puts("creating program of");
+	dump_patch(patch);
 
 	size_t dyncfg_total_size = 0;
 	for (const auto& x : patch.all_modules()) {
@@ -103,12 +159,16 @@ ms::synth::Program::Program(const ms::synth::Patch& patch) {
 	}
 
 	dyncfg_original_len = dyncfg_total_size;
+	printf("got total dyncfg blob len %d\n", dyncfg_total_size);
 
 	// Sort them:
 	// 	Predicate is operator<, returns true if A is before B. A is strictly before B if A is anywhere in the input chain of B.
 	std::sort(ordered_copy.begin(), ordered_copy.end(), [](const Patch::ModuleHolder *a, const Patch::ModuleHolder *b){
 		return is_in_input_list(b, a);
 	});
+
+	puts("order:");
+	for (const auto& x : ordered_copy) printf("-- %p\n", x);
 
 	// Alright, we now have a workable order of the modules.
 	//
