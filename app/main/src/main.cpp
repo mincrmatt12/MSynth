@@ -80,22 +80,33 @@ int main() {
 	// temp: setup a synth
 	ms::synth::Patch patch;
 	{
-		ms::synth::mod::TriangleWave x;
-		ms::synth::mod::TriangleWave::Cfg x_config;
+		ms::synth::mod::SqwWave x;
+		ms::synth::mod::SqwWave::Cfg x_config;
 
-		x.amplitude = 0.05f;
+		x.amplitude = 0.03f;
 		x.dc_offset = 0.f;
+		x.duty = 0.3f;
 
-		const ms::synth::Patch::ModuleHolder *sqw1 = patch.add_module(std::make_unique<ms::synth::Patch::ModuleHolder>(ms::synth::mod::TriModule, &x_config, &x));
+		const ms::synth::Patch::ModuleHolder *sqw1 = patch.add_module(std::make_unique<ms::synth::Patch::ModuleHolder>(ms::synth::mod::SqwModule, &x_config, &x));
+
+		ms::synth::mod::TriangleWave vib;
+		ms::synth::mod::TriangleWave::Cfg vib_config;
+
+		vib.amplitude = 2;
+		vib.frequency = 8;
+
+		const ms::synth::Patch::ModuleHolder *vibrato = patch.add_module(std::make_unique<ms::synth::Patch::ModuleHolder>(ms::synth::mod::TriModule, &vib_config, &vib));
 	
 		// Hook up to main output
 		patch.link_modules(sqw1, ms::synth::predef::ModuleRefGlobalOut, 0, 0);
 		// Hook up to dc_offset
-		patch.link_modules(ms::synth::predef::ModuleRefGlobalIn, sqw1, ms::synth::predef::GlobalInPitchIdx, 0);
+		patch.link_modules(ms::synth::predef::ModuleRefGlobalIn, vibrato, ms::synth::predef::GlobalInPitchIdx, 2);
+		// Hook up output of vibrato to frequency
+		patch.link_modules(vibrato, sqw1, 0, 0);
 	}
 
 	// Create an liveplayback
-	ms::synth::playback::LivePlayback<5> playback(patch);
+	ms::synth::playback::LivePlayback<10> playback(patch);
 
 	// Add it to the event pool
 	ms::evt::add(&playback);
@@ -106,17 +117,13 @@ int main() {
 	ms::audio::start();
 	status("Starting main loop...");
 
-	int i =0;
+	struct mallinfo g = mallinfo();
+	printf("arena %d; uord %d; ford %d\n", g.arena, g.uordblks, g.fordblks);
 	
 	while (1) {
-		++i;
 		util::delay(1);
 		ms::in::poll();
 		ms::ui::mgr::draw();
-		if (i % 100) {
-			struct mallinfo g = mallinfo();
-			printf("arena %d; uord %d; ford %d\n", g.arena, g.uordblks, g.fordblks);
-		}
 	}
 
 
