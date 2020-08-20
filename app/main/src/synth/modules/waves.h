@@ -1,4 +1,8 @@
 #pragma once
+// These all have a fairly common interface of
+//  - frequency
+//  - amplitude
+//  - dc_offset
 
 #include "../module.h"
 
