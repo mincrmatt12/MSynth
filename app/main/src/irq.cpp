@@ -25,5 +25,5 @@ ISR(DMA1_Stream4) {
 void ms::irq::init() {
 	// Enable DMA interrupts.
 	NVIC_EnableIRQ(DMA1_Stream4_IRQn);
-	NVIC_SetPriority(DMA1_Stream4_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 9, 0)); // TODO: pick a reasonable priority for this.
+	NVIC_SetPriority(DMA1_Stream4_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 5, 0)); // TODO: pick a reasonable priority for this.
 }
