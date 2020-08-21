@@ -89,6 +89,15 @@ namespace ms::in {
 
 			ms::evt::dispatch(evt);
 		}
+		else if ((data[0] == 0xe0) && length >= 3) {
+			int16_t offset = data[2] | (data[1] << 7);
+			evt.type = evt::MidiEvent::TypePitchBend;
+			evt.pitchbend.amount = offset;
+
+			printf("pbend %d\n", offset);
+
+			ms::evt::dispatch(evt);
+		}
 		// TODO: other messages
 	}
 

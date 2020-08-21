@@ -29,14 +29,27 @@ namespace ms::synth::playback {
 			switch (evt.type) {
 				case evt::MidiEvent::TypeNoteOn:
 					if (evt.note.velocity) {
+						printf("start note %d\n", evt.note.note);
 						start_note(midi_to_freq(evt.note.note), static_cast<float>(evt.note.velocity) / 0x7f);
 						break;
 					}
 					// some keyboards never send note off
 				case evt::MidiEvent::TypeNoteOff:
+					printf("end note %d\n", evt.note.note);
 					end_note(midi_to_freq(evt.note.note));
 					break;
 				case evt::MidiEvent::TypePitchBend:
+					// bend 
+					{
+						float semitones = 2.f;
+						if (evt.pitchbend.amount < 128)
+							semitones = static_cast<float>(evt.pitchbend.amount - 64) / 32.f;
+						pitch_bend_offset = offset_scale_from_semitones(semitones);
+						for (int i = 0; i < Channels; ++i) {
+							if (voices[i])
+								voices[i]->set_pitch(voices[i]->pitch() * pitch_bend_offset);
+						}
+					}
 				default:
 					break;
 			}
@@ -75,6 +88,7 @@ namespace ms::synth::playback {
 init:
 					voices[i]->reset_time();
 					voices[i]->set_pitch(pitch);
+					voices[i]->set_pitch(pitch*pitch_bend_offset);
 					voices[i]->set_velocity(velocity);
 					cut_voices[i] = false;
 					return;
@@ -98,5 +112,6 @@ init:
 		Program patch;
 		Voice*  voices[Channels]{};
 		bool    cut_voices[Channels]{};
+		float pitch_bend_offset=1.f;
 	};
 }
