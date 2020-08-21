@@ -49,7 +49,8 @@ bool ms::synth::mod::SinWave::generate(const Cfg& config) {
 	output = wavesin(incstate);
 
 	if (config.rectified) {
-		output = fabs(output);
+		output = fabsf(output);
+		output = output * 2.f - 1.f;
 	}
 	if (config.inverted) {
 		output = -output;
