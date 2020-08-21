@@ -295,6 +295,16 @@ ms::synth::Program::Program(const ms::synth::Patch& patch) {
 
 	// Run JIT
 	jit::assemble(compiled_procedure, pinsns);
+
+	// Report memory stats
+	puts("--- memusage --");
+	printf("procedure: %d insns = %d bytes in a %d capactity.\n", compiled_procedure.size(), compiled_procedure.size() * 2, compiled_procedure.capacity() * 2);
+	// Compact procedure
+	compiled_procedure.shrink_to_fit();
+	printf("after shrink, now using %d bytes\n", compiled_procedure.capacity() * 2);
+	puts(" --");
+	printf("offset pool is using %d bytes\n", offset_pool.capacity() * 4);
+	puts("--- end ---");
 }
 
 ms::synth::Voice * ms::synth::Program::new_voice() {
