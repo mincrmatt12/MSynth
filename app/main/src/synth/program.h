@@ -37,7 +37,7 @@ namespace ms::synth {
 		void reset_time();
 		void mark_off();
 
-		int16_t generate(bool &cut_note);
+		int32_t generate(bool &cut_note);
 
 		~Voice() {
 			free(dyncfg_blob);

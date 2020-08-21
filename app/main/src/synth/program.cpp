@@ -25,7 +25,7 @@ void ms::synth::Voice::mark_off() {
 	off_time = on_time;
 }
 
-int16_t ms::synth::Voice::generate(bool &cut_note) {
+int32_t ms::synth::Voice::generate(bool &cut_note) {
 	float result;
 
 	program.set_time(on_time, dyncfg_blob);
