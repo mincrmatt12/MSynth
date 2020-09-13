@@ -22,8 +22,8 @@ bool ms::synth::mod::SqwWave::generate(const Cfg& config) {
 }
 
 bool ms::synth::mod::TriangleWave::generate(const Cfg& config) {
-	if (curr_time == 0) {
-		incstate = 0;
+	if (curr_time == 0.f) {
+		incstate = 0.f;
 	}
 
 	incstate += (frequency/44100.f);
@@ -40,8 +40,23 @@ bool ms::synth::mod::TriangleWave::generate(const Cfg& config) {
 	return true;
 }
 
+bool ms::synth::mod::SawWave::generate(const Cfg& config) {
+	if (curr_time == 0.f) {
+		incstate = 0.f;
+	}
+
+	incstate += (frequency/44100.f);
+	if (incstate > 1.f) {
+		incstate -= 1.f;
+	}
+	output = dc_offset + (incstate - 0.5f) * amplitude;
+	if (config.inverted) output = -output;
+
+	return true;
+}
+
 bool ms::synth::mod::SinWave::generate(const Cfg& config) {
-	if (curr_time == 0) incstate = 0;
+	if (curr_time == 0.f) incstate = 0.f;
 	incstate += (frequency/44100.f);
 	if (incstate > 1.f) {
 		incstate -= 1.f;

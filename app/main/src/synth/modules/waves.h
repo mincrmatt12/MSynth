@@ -43,6 +43,20 @@ namespace ms::synth::mod {
 		float incstate;
 	};
 
+	struct SawWave {
+		struct Cfg {
+			bool inverted;
+		};
+		
+		float frequency, amplitude, dc_offset;
+		float curr_time;
+		float output;
+
+		bool generate(const Cfg& config);
+	private:
+		float incstate;
+	};
+
 	struct SinWave {
 		struct Cfg {
 			bool rectified;
@@ -89,6 +103,22 @@ namespace ms::synth::mod {
 			"triangle_wave",
 			TriInputs,
 			TriOutputs
+	);
+
+	static constexpr auto SawInputs = make_inputs(
+			make_input("frequency", &SawWave::frequency),
+			make_input("amplitude", &SawWave::amplitude, 0.f, 1.f),
+			make_input("dc_offset", &SawWave::dc_offset),
+			make_input(predef::AutoOnTime, &SawWave::curr_time)
+	);
+	static constexpr auto SawOutputs = make_outputs(
+			make_output("", &SawWave::output)
+	);
+
+	static constexpr auto SawModule = make_module<SawWave>(
+			"sawtooth_wave",
+			SawInputs,
+			SawOutputs
 	);
 
 	static constexpr auto SinInputs = make_inputs(
