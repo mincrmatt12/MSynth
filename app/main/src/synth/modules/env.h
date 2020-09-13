@@ -22,6 +22,10 @@ namespace ms::synth::mod {
 		bool generate(const Cfg& cfg);
 	};
 
+	struct ExpADSR : ADSR {
+		bool generate(const Cfg& cfg);
+	};
+
 	constexpr auto ADSRInputs = make_inputs(
 		make_input("scale", &ADSR::scale),
 		make_input(predef::AutoOnTime, &ADSR::curr_time),
@@ -36,5 +40,21 @@ namespace ms::synth::mod {
 		"adsr_envelope",
 		ADSRInputs,
 		ADSROutputs
+	);
+
+	constexpr auto ExpADSRInputs = make_inputs(
+		make_input("scale", &ExpADSR::scale),
+		make_input(predef::AutoOnTime, &ExpADSR::curr_time),
+		make_input(predef::AutoReleaseTime, &ExpADSR::off_time)
+	);
+
+	constexpr auto ExpADSROutputs = make_outputs(
+		make_output("", &ExpADSR::output)
+	);
+
+	constexpr auto ExpADSRModule = make_module<ExpADSR>(
+		"exponential_adsr_envelope",
+		ExpADSRInputs,
+		ExpADSROutputs
 	);
 }
