@@ -38,8 +38,12 @@ namespace ms::audio {
 			return;
 		}
 
+		const static auto generate = &synth::playback::AudioGenerator::generate;
+		typedef int16_t (*hoisted_loop_type)(synth::playback::AudioGenerator *);
+		hoisted_loop_type hoisted_loop = (hoisted_loop_type)(active_generator->*generate);
+
 		for (size_t sample = 0; sample < master_buffer_sample_count*2; sample += 2) {
-			int16_t raw = active_generator->generate();
+			int16_t raw = hoisted_loop(active_generator);
 			raw = static_cast<int16_t>((static_cast<int32_t>(raw) * master_volume) / INT16_MAX);
 			buf[sample] = raw;
 			buf[sample+1] = raw;
