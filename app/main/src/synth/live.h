@@ -59,11 +59,11 @@ namespace ms::synth::playback {
 		int16_t generate() override {
 			int16_t total = 0;
 			for (size_t i = 0; i < Channels; ++i) {
-				if (cut_voices[i] && voices[i]->released_time() != -1.f) continue;
 				if (voices[i]) {
+					if (cut_voices[i] && voices[i]->released_time() != -1.f) continue;
 					total = __QADD16(total, voices[i]->generate(cut_voices[i]) / (int16_t)Channels);
+					if (cut_voices[i] && (voices[i]->released_time() == -1.f)) cut_voices[i] = false;
 				}
-				if (cut_voices[i] && (voices[i]->released_time() == -1.f)) cut_voices[i] = false;
 			}
 			return total;
 		}
