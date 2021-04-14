@@ -157,11 +157,11 @@ def convert_bitmap(bitmap, compress, bytelength=-1):
                 usefull = True
                 for x in range(0, width, bytelength):
                     segment = bitmap[y][x:x+bytelength]
-                    if y != 0 and segment == bitmap[y - 1][x:x+bytelength] and sum(int(x) for x in segment) is not 0:
+                    if y != 0 and segment == bitmap[y - 1][x:x+bytelength] and sum(int(x) for x in segment) != 0:
                         possible.extend((0, 0, 0))
                         usefull = False
                     else:
-                        if sum(int(x) for x in segment) is 0:
+                        if sum(int(x) for x in segment) == 0:
                             possible.extend((1, 1))
                             usefull = False
                         else:
